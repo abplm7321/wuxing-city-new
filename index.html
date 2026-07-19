@@ -1,0 +1,3503 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五行字城・魔將亂世</title>
+    <link rel="stylesheet" href="css/body.css">
+    <link rel="stylesheet" href="css/multiplayer.css">
+    <link rel="stylesheet" href="css/matchmaking.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 核心縮放容器：鎖定 1920x1080 比例 -->
+    <div class="game-container" id="gameContainer">
+        <!-- 等待配對大廳 -->
+        <div class="multiplayer-lobby" id="multiplayerLobby">
+            <div class="lobby-bg-glow"></div>
+
+            <header class="lobby-topbar">
+                <div class="lobby-player-chip">
+                    <span class="player-avatar-mark">將</span>
+                    <div>
+                        <small>玩家</small>
+                        <strong>亂世新主</strong>
+                    </div>
+                </div>
+                <div class="lobby-resource-strip" aria-label="玩家資源">
+                    <div><i class="fa-solid fa-coins"></i><span>1280</span></div>
+                    <div><i class="fa-solid fa-gem"></i><span>45</span></div>
+                    <div><i class="fa-solid fa-ticket"></i><span>3</span></div>
+                </div>
+            </header>
+
+            <aside class="lobby-left-nav">
+                <button class="lobby-nav-btn active" id="openLobbyHeroSelect" type="button">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>選角</span>
+                </button>
+                <button class="lobby-nav-btn" type="button">
+                    <i class="fa-solid fa-scroll"></i>
+                    <span>任務</span>
+                </button>
+                <button class="lobby-nav-btn" type="button">
+                    <i class="fa-solid fa-box-archive"></i>
+                    <span>背包</span>
+                </button>
+            </aside>
+
+            <section class="lobby-character-screen hidden" id="lobbyCharacterScreen" aria-label="角色選擇">
+                <div class="lobby-character-header">
+                    <div>
+                        <span>武將列表</span>
+                        <h2>選擇英雄</h2>
+                    </div>
+                    <button class="lobby-character-close" id="closeLobbyHeroSelect" type="button" aria-label="關閉角色選擇">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="lobby-character-layout">
+                    <div class="lobby-character-grid" id="lobbyCharacterGrid"></div>
+                    <aside class="lobby-character-detail">
+                        <div class="lobby-character-art">
+                            <img id="lobbyDetailHeroImage" src="images/heros/Zhuge-Liang.jpg" alt="角色資訊">
+                        </div>
+                        <div class="lobby-character-copy">
+                            <span id="lobbyDetailFaction">蜀漢武將</span>
+                            <h3 id="lobbyDetailHeroName">諸葛亮</h3>
+                            <p id="lobbyDetailIntro">運籌帷幄的臥龍，能依局勢選擇軍略、民生或天機，穩健拓展優勢。</p>
+                            <div class="lobby-character-stats">
+                                <div><span>武力</span><strong id="lobbyDetailForce">0</strong></div>
+                                <div><span>文化</span><strong id="lobbyDetailCulture">0</strong></div>
+                                <div><span>統率</span><strong id="lobbyDetailCommand">0</strong></div>
+                            </div>
+                            <div class="lobby-character-skill">
+                                <small>被動</small>
+                                <strong id="lobbyDetailPassiveName">隆中對</strong>
+                                <p id="lobbyDetailPassiveDesc"></p>
+                            </div>
+                            <div class="lobby-character-skill active">
+                                <small>主動</small>
+                                <strong id="lobbyDetailActiveName">北伐</strong>
+                                <p id="lobbyDetailActiveDesc"></p>
+                            </div>
+                        </div>
+                        <button class="lobby-character-select" id="confirmLobbyHeroSelect" type="button">選擇</button>
+                    </aside>
+                </div>
+            </section>
+
+            <main class="lobby-hero-stage">
+                <div class="lobby-hero-portrait">
+                    <img id="lobbyHeroImage" src="images/heros/Zhuge-Liang.jpg" alt="目前展示角色">
+                </div>
+                <h1 id="lobbyHeroName">諸葛亮</h1>
+            </main>
+
+            <section class="lobby-match-panel" aria-label="配對">
+                <label>你的稱號<input id="networkPlayerName" maxlength="12" value="玩家" autocomplete="off"></label>
+                <button class="lobby-primary" id="createRoomBtn">建立房間</button>
+                <div class="lobby-divider"><span>或輸入房間碼</span></div>
+                <div class="join-room-row">
+                    <input id="roomCodeInput" maxlength="5" placeholder="房間碼" autocomplete="off">
+                    <button id="joinRoomBtn">加入</button>
+                </div>
+                <div class="lobby-message" id="lobbyMessage"></div>
+            </section>
+        </div>
+
+        <!-- 房主建立房間後，等第二位玩家加入才開放選角 -->
+        <div class="matchmaking-screen hidden" id="matchmakingScreen">
+            <div class="matchmaking-card">
+                <div class="matchmaking-emblem"><span></span><i class="fa-solid fa-user-group"></i><span></span></div>
+                <div class="matchmaking-kicker">雙雄對局</div>
+                <h1>等待玩家加入</h1>
+                <div class="matching-dots"><b></b><b></b><b></b></div>
+                <p>將下方房間碼告訴另一位玩家</p>
+                <div class="waiting-room-code" id="waitingRoomCode"></div>
+                <div class="waiting-player-count"><i class="fa-solid fa-circle-check"></i> 已連線 <strong id="waitingPlayerCount">1</strong> / 2</div>
+                <small>第二位玩家加入後，將自動進入對局</small>
+            </div>
+        </div>
+
+        <div class="game-result-screen hidden" id="gameResultScreen">
+            <div class="game-result-card">
+                <div class="result-kicker">十回合終局</div>
+                <h1 id="gameResultTitle">勝負已定</h1>
+                <p id="gameResultSubtitle"></p>
+                <div class="result-scores" id="gameResultScores"></div>
+                <button type="button" onclick="location.reload()">返回連線大廳</button>
+            </div>
+        </div>
+
+        <div class="yixing-choice-screen hidden" id="yixingChoiceScreen">
+            <div class="yixing-choice-card">
+                <div class="yixing-kicker">武聖被動</div>
+                <h1>選擇義行狀態</h1>
+                <p>此狀態會持續到你下一次攻城成功前。</p>
+                <div class="yixing-options">
+                    <button type="button" onclick="chooseYixingStatus('zhong')">
+                        <strong>忠</strong>
+                        <span>組字時額外獲得 1 文化</span>
+                    </button>
+                    <button type="button" onclick="chooseYixingStatus('yi')">
+                        <strong>義</strong>
+                        <span>所有人武力+1文化-2，自身武力+2文化-1</span>
+                    </button>
+                    <button type="button" onclick="chooseYixingStatus('zhan')">
+                        <strong>斬</strong>
+                        <span>下一次攻城消耗-1，攻城積分減半</span>
+                    </button>
+                </div>
+                <div class="yixing-message" id="yixingChoiceMessage"></div>
+            </div>
+        </div>
+
+        <div class="zhuge-choice-screen hidden" id="zhugeChoiceScreen">
+            <div class="zhuge-choice-card">
+                <div class="zhuge-kicker">諸葛被動・隆中對</div>
+                <h1>選擇戰略方向</h1>
+                <p>本局只能選擇一次方向。</p>
+                <div class="zhuge-options">
+                    <button type="button" data-zhuge-strategy="junlue">
+                        <strong>軍略</strong>
+                        <span>每回合第一次組字後，額外抽 1 張部件牌</span>
+                    </button>
+                    <button type="button" data-zhuge-strategy="minsheng">
+                        <strong>民生</strong>
+                        <span>每回合第一次合成，可選擇保留部首牌或部件牌</span>
+                    </button>
+                    <button type="button" data-zhuge-strategy="tianji">
+                        <strong>天機</strong>
+                        <span>每回合抽牌時，從 2 張部首與 2 張部件中各選 1 張</span>
+                    </button>
+                </div>
+                <div class="zhuge-message" id="zhugeChoiceMessage"></div>
+            </div>
+        </div>
+
+        <div class="xiangyu-choice-screen hidden" id="xiangyuChoiceScreen">
+            <div class="xiangyu-choice-card">
+                <div class="xiangyu-kicker">項羽主動・破釜沈舟</div>
+                <h1>是否發動全押狀態？</h1>
+                <p>本回合攻城消耗固定為 2，但無法獲得武力與文化。</p>
+                <div class="xiangyu-options">
+                    <button type="button" onclick="chooseXiangyuAllIn(true)">
+                        <strong>發動</strong>
+                        <span>本回合攻城消耗固定為 2</span>
+                    </button>
+                    <button type="button" onclick="chooseXiangyuAllIn(false)">
+                        <strong>不發動</strong>
+                        <span>保留正常資源收益與攻城消耗</span>
+                    </button>
+                </div>
+                <div class="xiangyu-message" id="xiangyuChoiceMessage"></div>
+            </div>
+        </div>
+
+        <div class="minsheng-choice-screen hidden" id="minshengChoiceScreen">
+            <div class="minsheng-choice-card">
+                <div class="minsheng-kicker">隆中對・民生</div>
+                <h1>保留一張手牌</h1>
+                <p id="minshengChoiceWord">本回合第一次合成成功，可保留一張素材牌。</p>
+                <div class="minsheng-options">
+                    <button type="button" onclick="resolveMinshengChoice('radical')">
+                        <strong>部首</strong>
+                        <span>保留這次使用的部首牌</span>
+                    </button>
+                    <button type="button" onclick="resolveMinshengChoice('component')">
+                        <strong>部件</strong>
+                        <span>保留這次使用的部件牌</span>
+                    </button>
+                </div>
+                <div class="minsheng-message" id="minshengChoiceMessage"></div>
+            </div>
+        </div>
+
+        <div class="tianji-choice-screen hidden" id="tianjiChoiceScreen">
+            <div class="tianji-choice-card">
+                <div class="tianji-kicker">隆中對・天機</div>
+                <h1>觀星擇牌</h1>
+                <p>從兩張部首牌與兩張部件牌中，各選一張加入手牌。</p>
+                <div class="tianji-choice-columns">
+                    <div>
+                        <h2>選擇部首</h2>
+                        <div class="tianji-options" id="tianjiRadicalOptions"></div>
+                    </div>
+                    <div>
+                        <h2>選擇部件</h2>
+                        <div class="tianji-options" id="tianjiComponentOptions"></div>
+                    </div>
+                </div>
+                <button class="tianji-confirm" type="button" onclick="confirmTianjiDraw()">收入手牌</button>
+                <div class="tianji-message" id="tianjiChoiceMessage"></div>
+            </div>
+        </div>
+
+        <div class="zhuge-beifa-choice-screen hidden" id="zhugeBeifaChoiceScreen">
+            <div class="zhuge-beifa-choice-card">
+                <button class="zhuge-beifa-close" type="button" onclick="closeZhugeBeifaChoice()" aria-label="關閉北伐">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="zhuge-beifa-kicker">諸葛主動・北伐</div>
+                <h1>宣告五行</h1>
+                <p>本回合每次成功組出宣告五行的字，都可從 1 張部首牌與 1 張部件牌中選 1 張加入手牌。</p>
+                <div class="zhuge-beifa-options">
+                    <button type="button" data-beifa-element="wood"><strong>木</strong><span>宣告木行</span></button>
+                    <button type="button" data-beifa-element="water"><strong>水</strong><span>宣告水行</span></button>
+                    <button type="button" data-beifa-element="fire"><strong>火</strong><span>宣告火行</span></button>
+                    <button type="button" data-beifa-element="gold"><strong>金</strong><span>宣告金行</span></button>
+                    <button type="button" data-beifa-element="earth"><strong>土</strong><span>宣告土行</span></button>
+                </div>
+                <div class="zhuge-beifa-message" id="zhugeBeifaChoiceMessage"></div>
+            </div>
+        </div>
+
+        <div class="zhuge-beifa-reward-screen hidden" id="zhugeBeifaRewardScreen">
+            <div class="zhuge-beifa-choice-card">
+                <div class="zhuge-beifa-kicker">北伐應驗</div>
+                <h1>選擇額外手牌</h1>
+                <p>軍星落定，只能收入其中一張。</p>
+                <div class="zhuge-beifa-reward-options" id="zhugeBeifaRewardOptions"></div>
+                <div class="zhuge-beifa-message" id="zhugeBeifaRewardMessage"></div>
+            </div>
+        </div>
+
+        <div class="hanxin-fusion-choice-screen hidden" id="hanxinFusionChoiceScreen">
+            <div class="hanxin-fusion-choice-card">
+                <div class="hanxin-kicker">韓信被動・暗渡陳倉</div>
+                <h1>如何處理此字？</h1>
+                <p id="hanxinFusionChoiceWord">已成功組出一個字</p>
+                <div class="hanxin-fusion-options">
+                    <button type="button" onclick="resolveHanxinFusionChoice('normal')">
+                        <strong>合成</strong>
+                        <span>正常獲得武力與文化，並放入已組合牌區</span>
+                    </button>
+                    <button type="button" onclick="resolveHanxinFusionChoice('ambush')">
+                        <strong>奇兵</strong>
+                        <span>放入奇兵區，不獲得武力與文化</span>
+                    </button>
+                </div>
+                <div class="hanxin-message" id="hanxinFusionChoiceMessage"></div>
+            </div>
+        </div>
+
+        <div class="hanxin-skill-choice-screen hidden" id="hanxinSkillChoiceScreen">
+            <div class="hanxin-skill-choice-card">
+                <button class="hanxin-skill-close" type="button" onclick="closeHanxinAmbushSkillChoice()" aria-label="關閉十面埋伏">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="hanxin-kicker">韓信主動・十面埋伏</div>
+                <h1>布下奇兵</h1>
+                <p>選擇 1 張奇兵牌展示，並指定下一次攻城效果。</p>
+                <h2>選擇奇兵牌</h2>
+                <div class="hanxin-skill-ambush-list" id="hanxinSkillAmbushList"></div>
+                <h2>選擇埋伏效果</h2>
+                <div class="hanxin-skill-options">
+                    <button type="button" data-hanxin-effect="cost_minus">
+                        <strong>減耗</strong>
+                        <span>下一次攻城消耗 -1</span>
+                    </button>
+                    <button type="button" data-hanxin-effect="defense_after">
+                        <strong>固守</strong>
+                        <span>攻城成功後，該城防禦 +1</span>
+                    </button>
+                    <button type="button" data-hanxin-effect="nearby_minus">
+                        <strong>牽制</strong>
+                        <span>攻城成功後，最近城池防禦 -1</span>
+                    </button>
+                </div>
+                <button class="hanxin-skill-confirm" type="button" onclick="confirmHanxinAmbushSkill()">發動十面埋伏</button>
+                <div class="hanxin-message" id="hanxinSkillChoiceMessage"></div>
+            </div>
+        </div>
+
+        <div class="guanyu-reward-screen hidden" id="guanyuRewardScreen">
+            <div class="guanyu-reward-card">
+                <div class="guanyu-reward-kicker">水淹七軍</div>
+                <h1>士氣崩潰獎勵</h1>
+                <p id="guanyuRewardText">你將率先攻下此城，選擇一項額外獎勵。</p>
+                <div class="guanyu-reward-options">
+                    <button type="button" onclick="resolveGuanYuRewardChoice('force')">
+                        <strong>武力 +1</strong>
+                        <span>乘勝追擊，補回攻城兵勢</span>
+                    </button>
+                    <button type="button" onclick="resolveGuanYuRewardChoice('culture')">
+                        <strong>文化 +1</strong>
+                        <span>收攏民心，鞏固戰果</span>
+                    </button>
+                </div>
+                <div class="guanyu-reward-message" id="guanyuRewardMessage"></div>
+            </div>
+        </div>
+
+        <!-- 主動技能 Cut-in 特效：使用技能成功時，放大角色頭像並顯示技能名稱。 -->
+        <div class="skill-cutscene hidden" id="skillCutscene">
+            <div class="skill-cutscene-flash"></div>
+            <div class="skill-cutscene-card">
+                <div class="skill-cutscene-avatar-ring">
+                    <img id="skillCutsceneAvatar" src="" alt="技能角色頭像">
+                </div>
+                <div class="skill-cutscene-info">
+                    <div class="skill-cutscene-kicker">主動施策</div>
+                    <div class="skill-cutscene-name" id="skillCutsceneName">屯田令</div>
+                    <div class="skill-cutscene-hero" id="skillCutsceneHero">曹操</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. 遊戲開始前頁面 (選角頁面) -->
+        <div class="screen-layer" id="start-screen">
+            <!-- 背景 -->
+            <div class="index-background">
+                <img src="images/pick-hero.jpg" class="index-img" alt="三國世界地圖">
+            </div>
+
+            <!-- 左側選角按鈕 -->
+            <div class="hero-select-main-region">
+                <!-- 左側朝代分類按鍵 -->
+                <div class="faction-filter-sidebar">
+                    <button class="faction-tab active" data-faction="all"><span>全部</span></button>
+                    <button class="faction-tab faction-wei" data-faction="Wei"><span>魏國</span></button>
+                    <button class="faction-tab faction-shu" data-faction="Shu"><span>蜀漢</span></button>
+                    <button class="faction-tab faction-wu" data-faction="Wu"><span>吳國</span></button>
+                    <button class="faction-tab faction-other" data-faction="Other"><span>群雄</span></button>
+                    <button class="faction-tab faction-extra" data-faction="Extra"><span>其他</span></button>
+                </div>
+                <!-- 角色圖示 -->
+                <div class="pick-hero">
+                    <div class="hero-list-grid" id="heroListContainer"></div>
+                </div>
+            </div>
+
+            <!-- 右側角色介紹 -->
+            <aside class="hero-detail-panel hidden" id="heroDetailPanel">
+                <!-- 右上角叉叉 -->
+                <button class="hero-detail-close" id="heroDetailClose" type="button" aria-label="關閉英雄介紹">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <!-- 還沒選英雄時的原始樣式 -->
+                <div class="hero-detail-empty" id="heroDetailEmpty">
+                    <span class="empty-seal">將</span>
+                    <h2>選擇一位英雄</h2>
+                    <p>點擊左側英雄頭像<br>查看武將介紹與技能</p>
+                </div>
+                <!-- 英雄介紹架構 -->
+                <div class="hero-detail-content hidden" id="heroDetailContent">
+                    <!-- 角色名稱 -->
+                    <div class="hero-detail-header">
+                        <div>
+                            <span class="hero-detail-faction" id="detailFaction"></span>
+                            <h2 id="detailHeroName"></h2>
+                        </div>
+                        <img id="detailHeroAvatar" src="" alt="">
+                    </div>
+                    <!-- 角色評級（星星數） -->
+                    <div class="hero-rating" aria-label="英雄評級">★ ★ ★ ★ ☆</div>
+                    <!-- 分隔線 -->
+                    <div class="detail-divider"></div>
+                    <!-- 武將介紹 -->
+                    <section class="detail-section">
+                        <h3>武將介紹</h3>
+                        <p id="detailHeroIntro"></p>
+                    </section>
+                    <!-- 初始數值 -->
+                    <section class="detail-section">
+                        <h3>初始屬性</h3>
+                        <div class="detail-stats">
+                            <div><span>武力</span><strong id="detailForce"></strong></div>
+                            <div><span>文化</span><strong id="detailCulture"></strong></div>
+                            <div><span>統率</span><strong id="detailCommand"></strong></div>
+                        </div>
+                    </section>
+                    <!-- 武將技能 -->
+                    <section class="detail-section skill-intro">
+                        <h3>武將技能</h3>
+                        <div class="detail-skill passive"><span>被動</span><div><b id="detailPassiveName"></b><p id="detailPassiveDesc"></p></div></div>
+                        <div class="detail-skill active"><span>主動</span><div><b id="detailActiveName"></b><small id="detailActiveCast"></small><p id="detailActiveDesc"></p></div></div>
+                    </section>
+                </div>
+            </aside>
+
+            <!-- 底部確定選擇按鈕 -->
+            <button class="confirm-btn-img" id="btn-confirm-selection" aria-label="確定選擇"></button>
+        </div>
+
+        <!-- 遊玩畫面 -->
+        <div class="game-ui-layer">
+            <!-- 左上角角色資訊區塊 -->
+            <div class="character-panel">
+                <!-- 角色頭像 -->
+                <div class="avatar-box">
+                    <!-- 先放一張預設背景 -->
+                    <img src="images/heros/Zhuge-Liang.jpg" alt="魔將葛亮" class="avatar-img">
+                </div>
+                
+                <!-- 角色屬性資訊 -->
+                <div class="profile-info">
+                    <!-- 預設角色名 -->
+                    <h2 class="char-name">諸葛</h2>
+                    <!-- 預設角色數值 -->
+                    <div class="stats-list">
+                        <div class="stat-item">武力 <span class="dot">•</span> <span class="stat-val value-force">8</span></div>
+                        <div class="stat-item">文化 <span class="dot">•</span> <span class="stat-val value-culture">10</span></div>
+                        <div class="stat-item">積分 <span class="dot">•</span> <span class="stat-val value-troops value-score">0</span></div>
+                    </div>
+                    <!-- 預設角色開發點 -->
+                    <div class="dev-points">
+                        開發點 <span class="dev-val">2</span>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- 左側技能面板 -->
+            <div class="skills-panel">
+                <!-- 被動技能 -->
+                <div class="passive-skill-box">
+                    <div class="skill-header">
+                        <span class="skill-tag passive">被動</span>
+                        <span class="skill-name passive-name">天機圖策</span>
+                    </div>
+                    <div class="skill-desc passive-desc">
+                        每有1座城池，文化+1<br>
+                        其他玩家每有1座城池，文化收益-1
+                    </div>
+                </div>
+
+                <div class="observation-box hidden" id="guojiaObservationBox">
+                    <div class="skill-header">
+                        <span class="skill-tag passive">觀測</span>
+                        <span class="skill-name">先見紀錄</span>
+                    </div>
+                    <div class="observation-list" id="guojiaObservationList">
+                        <div class="observation-empty">尚無觀測紀錄</div>
+                    </div>
+                </div>
+
+                <div class="ambush-box hidden" id="hanxinAmbushBox">
+                    <div class="skill-header">
+                        <span class="skill-tag passive">奇兵</span>
+                        <span class="skill-name">暗渡陳倉</span>
+                    </div>
+                    <div class="ambush-hint">奇兵牌只會在使用「十面埋伏」時消耗</div>
+                    <div class="ambush-list" id="hanxinAmbushList">
+                        <div class="ambush-empty">奇兵區尚無字牌</div>
+                    </div>
+                </div>
+
+                <!-- 主動技能列表 -->
+                <div class="active-skills-list">
+                    <!-- 技能 -->
+                    <div class="skill-item">
+                        <div class="skill-icon icon-blue">技</div>
+                        <div class="skill-info">
+                            <div class="skill-meta">
+                                <span class="skill-name active-name">木牛流制</span>
+                                <span class="cast-count active-cast">1回施策</span>
+                            </div>
+                            <div class="skill-desc active-desc">選擇一項區域持續2回合</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右上角系統選單 -->
+            <div class="system-menu">
+                <button class="menu-btn">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>設定</span>
+                </button>
+                <button class="menu-btn">
+                    <i class="fa-solid fa-cards-blank"></i> <i class="fa-solid fa-layer-group"></i>
+                    <span>牌庫</span>
+                </button>
+                <button class="menu-btn">
+                    <i class="fa-solid fa-scroll"></i>
+                    <span>記錄</span>
+                </button>
+            </div>
+
+            <!-- 頂部中央回合計時計 -->
+            <div class="turn-timer-container">
+                <!-- 回合數 -->
+                <div class="era-disc">
+                    <div class="era-sub">當前時代</div>
+                    <div class="era-title">三國</div>
+                    <div class="era-round">第 <span class="round-num">7</span> 回合</div>
+                </div>
+
+                <!-- 回合順序頭 -->
+                <div class="turn-order-flow">
+                    <div class="flow-label">回合順序</div>
+                    <div class="avatar-chain">
+                    </div>
+                </div>
+
+                <!-- 結束回合按鈕 -->
+                <button class="end-turn-button" id="endTurnButton" type="button">
+                    <i class="fa-solid fa-flag-checkered"></i>
+                    <span>結束回合</span>
+                    <small id="endTurnStatus">等待配對</small>
+                </button>
+
+            </div>
+
+            <!-- 中間地圖 -->
+            <div class="game-map-wrapper">
+                <!-- 背景與地圖層 -->
+                <div class="game-background">
+                    <img src="images/my-background.jpg" class="map-img" alt="三國世界地圖">
+                </div>
+
+                <!-- 永平 -->
+                <div class="city-node" id="castle-beiping" onclick="selectCity('beiping')" style="top: 200px; left: 1250px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-beiping" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">北平</div><div class="node-stats">5/2</div></div>
+                </div>
+                <!-- 鄴城 -->
+                <div class="city-node" id="castle-yecheng" onclick="selectCity('yecheng')" style="top: 300px; left: 1080px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-yecheng" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">鄴城</div><div class="node-stats">7/4</div></div>
+                </div>
+                <!-- 徐州 -->
+                <div class="city-node" id="castle-xuzhou" onclick="selectCity('xuzhou')" style="top: 400px; left: 1250px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-xuzhou" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">徐州</div><div class="node-stats">6/3</div></div>
+                </div>
+                <!-- 洛陽 -->
+                <div class="city-node" id="castle-luoyang" onclick="selectCity('luoyang')" style="top: 450px; left: 920px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-luoyang" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">洛陽</div><div class="node-stats">8/5</div></div>
+                </div>
+                <!-- 漢中 -->
+                <div class="city-node" id="castle-hanzhong" onclick="selectCity('hanzhong')" style="top: 520px; left: 720px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-hanzhong" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">漢中</div><div class="node-stats">6/3</div></div>
+                </div>
+                <!-- 南陽 -->
+                <div class="city-node" id="castle-nanyang" onclick="selectCity('nanyang')" style="top: 600px; left: 1020px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-nanyang" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">南陽</div><div class="node-stats">5/2</div></div>
+                </div>
+                <!-- 襄陽 -->
+                <div class="city-node" id="castle-xiangyang" onclick="selectCity('xiangyang')" style="top: 650px; left: 900px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-xiangyang" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">襄陽</div><div class="node-stats">5/2</div></div>
+                </div>
+                <!-- 建業 -->
+                <div class="city-node" id="castle-jianye" onclick="selectCity('jianye')" style="top: 580px; left: 1380px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-jianye" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">建業</div><div class="node-stats">7/4</div></div>
+                </div>
+                <!-- 江夏 -->
+                <div class="city-node" id="castle-jiangxia" onclick="selectCity('jiangxia')" style="top: 700px; left: 1200px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-jiangxia" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">江夏</div><div class="node-stats">5/2</div></div>
+                </div>
+                <!-- 成都 -->
+                <div class="city-node" id="castle-chengdu" onclick="selectCity('chengdu')" style="top: 700px; left: 620px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-chengdu" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">成都</div><div class="node-stats">7/4</div></div>
+                </div>
+                <!-- 會稽 -->
+                <div class="city-node" id="castle-huiji" onclick="selectCity('huiji')" style="top: 760px; left: 1320px; cursor: pointer;">
+                    <div class="city-owner-badge">
+                        <img src="" class="owner-avatar" id="avatar-huiji" style="display: none;">
+                    </div>
+                    <div class="city-node-box"><div class="node-name">會稽</div><div class="node-stats">4/1</div></div>
+                </div>
+            </div>
+            
+            <!-- 城池資訊面板&遊戲記錄/聊天室 -->
+            <div class="right-sidebar">
+                <div class="city-info-panel" id="cityInfoPanel" style="display: none;">
+                    <!-- 關閉視窗叉叉 -->
+                    <button class="panel-close-btn" onclick="closeCityInfo()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+
+                    <!-- 城池名字 -->
+                    <div class="city-header">
+                        <h2 class="city-name city-name-target">洛陽</h2>
+                    </div>
+                    
+                    <!-- 防禦/積分 -->
+                    <div class="city-stats">
+                        <div class="city-stat-row">
+                            <span>防禦</span>
+                            <span class="city-stat-val city-defense">8</span>
+                        </div>
+                        <div class="city-stat-row">
+                            <span>積分</span>
+                            <span class="city-stat-val city-points">5</span>
+                        </div>
+                    </div>
+
+                    <!-- 城池效果/駐守玩家 -->
+                    <div class="city-details">
+                        <div class="detail-item">
+                            <span class="detail-label">城池效果</span>
+                            <span class="detail-val city-effect empty">無</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">駐守玩家</span>
+                            <span class="detail-val city-player empty">無</span>
+                        </div>
+                    </div>
+
+                    <!-- 攻城按鈕/升級按鈕 -->
+                    <div class="city-actions">
+                        <button class="btn-action btn-upgrade" id="cityUpgradeBtn" onclick="executeUpgradeDefense()" style="display: none;">
+                            <span class="btn-text">升級防禦</span>
+                            <span class="btn-cost">消耗文化：2</span>
+                        </button>
+                        <button class="btn-action btn-attack" id="cityAttackBtn" onclick="executeAttack()">
+                            <span class="btn-text">前往攻城</span>
+                            <span class="btn-cost" id="attackCostText">需要武力：8</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 遊戲紀錄 -->
+                <div class="game-log-panel">
+                    <!-- 標題字 -->
+                    <div class="log-title">遊戲記錄</div>
+                    
+                    <!-- 文字 -->
+                    <div class="log-content" id="log-content">
+                    </div>
+
+                    <!-- 傳送框 -->
+                    <div class="log-input-area">
+                        <input type="text" class="log-input" placeholder="點擊輸入文字...">
+                        <button class="btn-send">傳送</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部核心卡牌與操作總區域 -->
+            <div class="bottom-game-area">
+                <!-- 部首牌區 -->
+                <div class="deck-section radical-deck">
+                    <div class="section-title">部首牌</div>
+                    <div class="carousel-container">
+                        <!-- 左箭頭 -->
+                        <button class="carousel-arrow prev" onclick="scrollDeck('.radical-deck', -1)">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <!-- 遮罩視窗 -->
+                        <div class="cards-carousel-wrapper">
+                            <div class="cards-container">
+                                </div>
+                        </div>
+                        <!-- 右箭頭 -->
+                        <button class="carousel-arrow next" onclick="scrollDeck('.radical-deck', 1)">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 組字區 -->
+                <div class="deck-section component-deck">
+                    <div class="section-title">組字區</div>
+                    <div class="carousel-container">
+                        <!-- 左箭頭 -->
+                        <button class="carousel-arrow prev" onclick="scrollDeck('.component-deck', -1)">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <!-- 遮罩視窗 -->
+                        <div class="cards-carousel-wrapper">
+                            <div class="cards-container">
+                                </div>
+                        </div>
+                        <!-- 右箭頭 -->
+                        <button class="carousel-arrow next" onclick="scrollDeck('.component-deck', 1)">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 已組合牌區 -->
+                <div class="deck-section composition-zone-deck">
+                    <div class="section-title">已組合牌區</div>
+                    <div class="carousel-container">
+                        <!-- 左箭頭 -->
+                        <button class="carousel-arrow prev" onclick="scrollDeck('.composition-zone-deck', -1)">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <!-- 遮罩視窗 -->
+                        <div class="cards-carousel-wrapper">
+                            <div class="cards-container">
+                                </div>   
+                        </div>
+                        <!-- 右箭頭 -->
+                        <button class="carousel-arrow next" onclick="scrollDeck('.composition-zone-deck', 1)">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 錦囊牌區 -->
+                <div class="deck-section tactic-deck">
+                    <div class="section-title">錦囊牌</div>
+                    <div class="cards-container">
+                        <div class="game-card tactic-card">
+                            <div class="card-inner">
+                                <div class="tactic-name">草船借箭</div>
+                                <div class="tactic-effect">+2 文化</div>
+                            </div>
+                        </div>
+                        <div class="game-card tactic-card">
+                            <div class="card-inner">
+                                <div class="tactic-name">火攻</div>
+                                <div class="tactic-effect">指定玩家 防禦-2</div>
+                            </div>
+                        </div>
+                        <div class="game-card tactic-card">
+                            <div class="card-inner">
+                                <div class="tactic-name">空城計</div>
+                                <div class="tactic-effect">本回合 免疫攻擊</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 融合框框 -->>
+                <div class="fusion-craft-panel" id="fusionCraftPanel" style="display: none;">
+                    <div class="fusion-slots-row">
+                        <div class="fusion-slot" id="fusionSlotRadical"></div>
+                        
+                        <div class="fusion-connector-plus">+</div>
+                        
+                        <div class="fusion-slot" id="fusionSlotComponent"></div>
+                    </div>
+                    
+                    <button class="fusion-action-btn" onclick="executeFusionCraft()">
+                        <i class="fa-solid fa-fire-burner"></i> 熔煉融合
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自動縮放的 JavaScript 腳本 -->
+    <script>
+        // 1. 遊戲畫面自動縮放邏輯
+        // 遊戲畫面以 1920x1080 設計，這裡會依照瀏覽器視窗等比例縮放。
+        function resizeGame() {
+            const container = document.getElementById('gameContainer');
+            const targetWidth = 1920;
+            const targetHeight = 1080;
+            const scaleX = window.innerWidth / targetWidth;
+            const scaleY = window.innerHeight / targetHeight;
+            const scale = Math.min(scaleX, scaleY);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+
+        // 2. 畫面自動縮放監聽
+        window.addEventListener('resize', resizeGame);
+
+        // 3. 後端伺服器網址自動判定
+        // file:// 開啟時手動連 localhost；http:// 開啟時走同網域 API
+        const NETWORK_API = location.protocol === 'file:' ? 'http://localhost:3000' : '';
+
+        // 4. 多人連線狀態的「開關與記憶夾」
+        // 用來儲存當前連線的 Session（會話資訊），例如玩家的連線 Token、個人識別碼（ID）等
+        let networkSession = null;
+        // 用來儲存當前遊戲房間的最新狀態。例如：房間裡有誰、大家各自佔領了哪些城池、目前局勢如何
+        let multiplayerRoomState = null;
+        // 儲存「計時器」的 ID（通常配合 setInterval 使用）。用來定時（例如每秒一次）向後端伺服器拉取最新資料，確保看到的畫面是同步的
+        let roomSyncTimer = null;
+        // 額外心跳計時器：避免玩家沒操作時被誤判離線。
+        let heartbeatTimer = null;
+        // 用來記錄現在是不是本機玩家的回合。如果是 false，就鎖住攻城、升級、合成。
+        let isLocalPlayersTurn = false;
+        // 記錄上一次渲染的回合順序，避免頭像沒有變化時重複重畫
+        let lastTurnOrderKey = '';
+        // 記錄是否已經從選角頁進入主遊戲，避免還沒開局就自動抽牌
+        let gameHasStarted = false;
+        // 首頁大廳目前挑選的武將。進入房間時會直接用這位，不再進入二次選角。
+        let selectedLobbyHeroId = 'Zhuge-Liang';
+        // 記錄這一回合是否已經抽過牌，避免輪詢同步時重複抽
+        let lastTurnDrawKey = '';
+        // 記錄結算畫面是否已顯示過，避免重複生成結算內容
+        let renderedResultKey = '';
+        // 避免關閉頁面時重複通知後端「我離開了」。
+        let leaveHasBeenReported = false;
+        // 本機玩家目前的義行狀態：zhong / yi / zhan / null。
+        let currentYixingStatus = null;
+        // 本機諸葛目前選擇的隆中方向：junlue / minsheng / tianji / null。
+        let currentZhugeStrategy = null;
+        // 本機諸葛北伐本回合宣告的五行：wood / water / fire / gold / earth / null。
+        let currentZhugeBeifaElement = null;
+        let currentHanxinAmbushTactic = null;
+        let currentXiangyuAllInRound = null;
+        let lastZhugeFusionDrawKey = '';
+        let lastMinshengPreserveKey = '';
+        let pendingMinshengFusion = null;
+        let currentCaocaoTuntianDoubleLeft = 0;
+        let pendingTianjiDraw = null;
+        let pendingGuanYuRewardAttack = false;
+        let selectedGuojiaObservationIndex = null;
+        let selectedHanxinSkillAmbushIndex = null;
+        let selectedHanxinSkillEffect = null;
+        let pendingZhugeBeifaReward = null;
+        // 韓信組字成功後，暫存這次合成結果，等待玩家選「合成」或「奇兵」。
+        let pendingHanxinFusion = null;
+
+        // 統一包裝 fetch：自動補 JSON header，並把後端錯誤轉成 throw Error。
+        async function networkRequest(path, options = {}) {
+            const response = await fetch(`${NETWORK_API}${path}`, {
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || '連線失敗');
+            return result;
+        }
+
+        const WUXING_ELEMENT_LABELS = {
+            wood: '木',
+            water: '水',
+            fire: '火',
+            gold: '金',
+            earth: '土'
+        };
+
+        const RADICAL_TO_ELEMENT = {
+            木: 'wood',
+            水: 'water',
+            火: 'fire',
+            金: 'gold',
+            土: 'earth'
+        };
+
+        function getZhugeBeifaAvailableRound(player) {
+            const lastRound = parseInt(player?.zhugeBeifaRoundUsed || 0, 10);
+            return lastRound ? lastRound + 2 : 0;
+        }
+
+        function isZhugeBeifaCoolingDown(player, currentRound) {
+            const availableRound = getZhugeBeifaAvailableRound(player);
+            return Boolean(availableRound && currentRound < availableRound);
+        }
+
+        // 依照目前行動玩家，把回合順序頭像重新排序並顯示在上方灰色框中。
+        function renderTurnOrder(room) {
+            const chain = document.querySelector('.avatar-chain');
+            const label = document.querySelector('.flow-label');
+            if (!chain) return;
+
+            const orderedPlayers = room.players
+                .map((player, index) => ({ ...player, playerNumber: index + 1 }))
+                .sort((a, b) => {
+                    if (a.playerNumber === room.currentPlayerNumber) return -1;
+                    if (b.playerNumber === room.currentPlayerNumber) return 1;
+                    return a.playerNumber - b.playerNumber;
+                });
+            const orderKey = `${room.currentPlayerNumber}:${orderedPlayers.map(player => player.heroId || player.name).join('|')}`;
+            if (orderKey === lastTurnOrderKey) return;
+            lastTurnOrderKey = orderKey;
+
+            chain.innerHTML = '';
+            orderedPlayers.forEach((player, index) => {
+                const avatar = document.createElement('div');
+                avatar.className = `order-avatar ${index === 0 ? 'active turn-avatar-lead' : 'turn-avatar-trail'}`;
+                avatar.title = `${player.name}${player.heroName ? `・${player.heroName}` : ''}`;
+                if (player.heroId) {
+                    const image = document.createElement('img');
+                    image.src = `images/heros/${player.heroId}.jpg`;
+                    image.alt = player.heroName || player.name;
+                    avatar.appendChild(image);
+                } else {
+                    const initial = document.createElement('span');
+                    initial.className = 'order-avatar-initial';
+                    initial.textContent = player.name.slice(0, 1);
+                    avatar.appendChild(initial);
+                }
+                chain.appendChild(avatar);
+            });
+            if (label) label.textContent = `回合順序・${room.currentPlayerName || ''} 行動`;
+        }
+
+        // 十回合結束後顯示勝負畫面與雙方積分。
+        function renderGameResult(room) {
+            if (!room.gameOver) return;
+            const resultKey = `${room.round}:${room.players.map(player => player.score).join('-')}`;
+            if (resultKey === renderedResultKey) return;
+            renderedResultKey = resultKey;
+
+            const screen = document.getElementById('gameResultScreen');
+            const title = document.getElementById('gameResultTitle');
+            const subtitle = document.getElementById('gameResultSubtitle');
+            const scores = document.getElementById('gameResultScores');
+            const localWon = room.winnerPlayerNumber === networkSession?.playerNumber;
+            title.textContent = room.isDraw ? '平分秋色' : localWon ? '天下歸心' : '勝負已定';
+            subtitle.textContent = room.isDraw ? '雙方積分相同，本局平手' : `${room.winnerName} 以較高積分獲得勝利`;
+            scores.innerHTML = '';
+            room.players.forEach((player, index) => {
+                const item = document.createElement('div');
+                item.className = `result-player ${room.winnerPlayerNumber === index + 1 ? 'winner' : ''}`;
+                const name = document.createElement('span');
+                name.textContent = player.name;
+                const score = document.createElement('strong');
+                score.textContent = `${player.score} 分`;
+                item.append(name, score);
+                scores.appendChild(item);
+            });
+            screen.classList.remove('hidden');
+        }
+
+        // 單機模式或錯誤提示用：直接在本機右側遊戲紀錄新增一行
+        function appendLocalLog(text) {
+            const logContent = document.getElementById('log-content');
+            if (!logContent || !text) return;
+            const line = document.createElement('div');
+            line.className = 'log-line local-log';
+            line.innerHTML = colorizeLogText(text);
+            logContent.appendChild(line);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        // 遊戲紀錄上色：後端只送純文字，前端在這裡把玩家、城池、英雄、數值與動作關鍵字染色。
+        function escapeLogHtml(text) {
+            return String(text).replace(/[&<>"']/g, char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[char]));
+        }
+
+        function colorizeLogText(text) {
+            const cityNames = ['北平', '鄴城', '徐州', '洛陽', '漢中', '南陽', '襄陽', '建業', '江夏', '成都', '會稽'];
+            const heroNames = ['諸葛亮', '曹操', '郭嘉', '關羽', '諸葛', '韓信', '項羽'];
+            let html = escapeLogHtml(text);
+
+            // 玩家名稱通常出現在句首，或「輪到 XXX」這種位置。
+            html = html.replace(/^([^：\s]+)(?=：)/, '<span class="log-player">$1</span>');
+            html = html.replace(/^(.+?)(?= (?:加入了房間|選擇了|攻下了|升級了|因 |結束行動))/, '<span class="log-player">$1</span>');
+            html = html.replace(/輪到 ([^<，\s]+)/g, '輪到 <span class="log-player">$1</span>');
+
+            // 城池名與英雄名用固定清單上色，避免玩家自訂文字誤判太多。
+            cityNames.forEach(name => {
+                html = html.replace(new RegExp(name, 'g'), `<span class="log-city">${name}</span>`);
+            });
+            heroNames.forEach(name => {
+                html = html.replace(new RegExp(name, 'g'), `<span class="log-hero">${name}</span>`);
+            });
+
+            // 常見動作關鍵字。
+            html = html.replace(/(攻下了|升級了|選擇了|結束行動|加入了房間|獲得勝利|平手)/g, '<span class="log-action">$1</span>');
+
+            // 數值與資源字眼。
+            html = html.replace(/(\+?\d+)(?=\s*(?:積分|文化|武力|城防|分))/g, '<span class="log-value">$1</span>');
+            html = html.replace(/(積分|文化|武力|城防|防禦|效果)/g, '<span class="log-resource">$1</span>');
+            return html;
+        }
+
+        function renderGuojiaObservation(localPlayer) {
+            const box = document.getElementById('guojiaObservationBox');
+            const list = document.getElementById('guojiaObservationList');
+            if (!box || !list) return;
+            const isGuojia = localPlayer && localPlayer.passiveId === 'guojia_observe';
+            box.classList.toggle('hidden', !isGuojia);
+            if (!isGuojia) return;
+
+            const observations = Array.isArray(localPlayer.observationList)
+                ? localPlayer.observationList
+                : [];
+            if (observations.length === 0) {
+                list.innerHTML = '<div class="observation-empty">尚無觀測紀錄</div>';
+                selectedGuojiaObservationIndex = null;
+                return;
+            }
+
+            if (selectedGuojiaObservationIndex !== null && selectedGuojiaObservationIndex >= observations.length) {
+                selectedGuojiaObservationIndex = null;
+            }
+
+            list.innerHTML = observations.map((item, index) => `
+                <button type="button" class="observation-item ${selectedGuojiaObservationIndex === index ? 'selected' : ''}" data-observation-index="${index}">
+                    <strong>${escapeLogHtml(item.actorName || '玩家')}</strong>
+                    <span class="observation-type">${escapeLogHtml(item.actionType || '行動')}</span>
+                    <span>${escapeLogHtml(item.detail || '')}</span>
+                </button>
+            `).join('');
+            list.querySelectorAll('[data-observation-index]').forEach(button => {
+                button.addEventListener('click', () => {
+                    selectedGuojiaObservationIndex = parseInt(button.dataset.observationIndex, 10);
+                    renderGuojiaObservation(localPlayer);
+                });
+            });
+        }
+
+        function renderHanxinAmbush(localPlayer) {
+            const box = document.getElementById('hanxinAmbushBox');
+            const list = document.getElementById('hanxinAmbushList');
+            if (!box || !list) return;
+            const isHanxin = localPlayer && localPlayer.passiveId === 'hanxin_ambush';
+            box.classList.toggle('hidden', !isHanxin);
+            if (!isHanxin) return;
+
+            const ambushCards = Array.isArray(localPlayer.ambushCards)
+                ? localPlayer.ambushCards
+                : [];
+            if (ambushCards.length === 0) {
+                list.innerHTML = '<div class="ambush-empty">奇兵區尚無字牌</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            ambushCards.forEach((card) => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'ambush-card disabled';
+                item.disabled = true;
+                item.title = `奇兵 ${card.word}：使用十面埋伏時才會消耗`;
+                item.innerHTML = `
+                    <div>
+                        <div class="ambush-word">${escapeLogHtml(card.word || '字')}</div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        async function settleHanxinAmbush(index) {
+            appendLocalLog('系統｜奇兵牌只會在使用十面埋伏時消耗');
+        }
+
+        function showHanxinAmbushSkillChoice(localPlayer) {
+            const screen = document.getElementById('hanxinSkillChoiceScreen');
+            const list = document.getElementById('hanxinSkillAmbushList');
+            const message = document.getElementById('hanxinSkillChoiceMessage');
+            if (!screen || !list) return;
+            const ambushCards = localPlayer && Array.isArray(localPlayer.ambushCards) ? localPlayer.ambushCards : [];
+            selectedHanxinSkillAmbushIndex = null;
+            selectedHanxinSkillEffect = null;
+            if (message) message.textContent = '';
+
+            if (ambushCards.length === 0) {
+                list.innerHTML = '<div class="ambush-empty">奇兵區尚無字牌</div>';
+            } else {
+                list.innerHTML = ambushCards.map((card, index) => `
+                    <button type="button" class="hanxin-skill-ambush-card" data-hanxin-index="${index}">
+                        <span>${escapeLogHtml(card.word || '字')}</span>
+                    </button>
+                `).join('');
+                list.querySelectorAll('[data-hanxin-index]').forEach(button => {
+                    button.addEventListener('click', () => {
+                        selectedHanxinSkillAmbushIndex = parseInt(button.dataset.hanxinIndex, 10);
+                        list.querySelectorAll('.hanxin-skill-ambush-card').forEach(item => item.classList.remove('selected'));
+                        button.classList.add('selected');
+                    });
+                });
+            }
+
+            screen.querySelectorAll('[data-hanxin-effect]').forEach(button => {
+                button.disabled = false;
+                button.classList.remove('selected');
+                button.onclick = () => {
+                    selectedHanxinSkillEffect = button.dataset.hanxinEffect;
+                    screen.querySelectorAll('[data-hanxin-effect]').forEach(item => item.classList.remove('selected'));
+                    button.classList.add('selected');
+                };
+            });
+            screen.classList.remove('hidden');
+        }
+
+        async function confirmHanxinAmbushSkill() {
+            const screen = document.getElementById('hanxinSkillChoiceScreen');
+            const message = document.getElementById('hanxinSkillChoiceMessage');
+            if (selectedHanxinSkillAmbushIndex === null || !selectedHanxinSkillEffect) {
+                if (message) message.textContent = '請選擇 1 張奇兵牌與 1 個埋伏效果';
+                return;
+            }
+            if (message) message.textContent = '正在布下十面埋伏…';
+            try {
+                const result = await networkRequest(`/api/rooms/${networkSession.code}/hanxin-ambush-skill`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        playerId: networkSession.playerId,
+                        index: selectedHanxinSkillAmbushIndex,
+                        effect: selectedHanxinSkillEffect
+                    })
+                });
+                if (screen) screen.classList.add('hidden');
+                selectedHanxinSkillAmbushIndex = null;
+                selectedHanxinSkillEffect = null;
+                applyRoomState(result.room);
+                playSkillCutscene({
+                    heroName: currentHero?.name || '韓信',
+                    heroAvatar: currentHero?.avatar || 'images/heros/Han-Xin.jpg',
+                    skillName: document.querySelector('.active-name')?.textContent || '十面埋伏'
+                });
+            } catch (error) {
+                if (message) message.textContent = error.message;
+            }
+        }
+        window.confirmHanxinAmbushSkill = confirmHanxinAmbushSkill;
+
+        function closeHanxinAmbushSkillChoice() {
+            const screen = document.getElementById('hanxinSkillChoiceScreen');
+            const message = document.getElementById('hanxinSkillChoiceMessage');
+            selectedHanxinSkillAmbushIndex = null;
+            selectedHanxinSkillEffect = null;
+            if (message) message.textContent = '';
+            if (screen) {
+                screen.querySelectorAll('.selected').forEach(item => item.classList.remove('selected'));
+                screen.classList.add('hidden');
+            }
+        }
+        window.closeHanxinAmbushSkillChoice = closeHanxinAmbushSkillChoice;
+
+        function showHanxinFusionChoice(fusionData) {
+            pendingHanxinFusion = fusionData;
+            const screen = document.getElementById('hanxinFusionChoiceScreen');
+            const wordText = document.getElementById('hanxinFusionChoiceWord');
+            const message = document.getElementById('hanxinFusionChoiceMessage');
+            if (wordText) wordText.textContent = `你組出了「${fusionData.newChar}」，請選擇處理方式`;
+            if (message) message.textContent = '';
+            if (screen) {
+                screen.querySelectorAll('button').forEach(button => button.disabled = false);
+                screen.classList.remove('hidden');
+            }
+        }
+
+        function removeFusionSourceCards(fusionData, addCombinedWord, preserveType = null) {
+            const cardToKeep = preserveType === 'radical'
+                ? fusionData.radicalCard
+                : preserveType === 'component'
+                    ? fusionData.componentCard
+                    : null;
+            const cardToDel1 = preserveType === 'radical' ? null : fusionData.radicalCard;
+            const cardToDel2 = preserveType === 'component' ? null : fusionData.componentCard;
+            if (cardToKeep) {
+                cardToKeep.classList.remove('selected-card');
+                cardToKeep.style.transform = '';
+                cardToKeep.style.opacity = '';
+                cardToKeep.style.transition = '';
+            }
+            if (cardToDel1) {
+                cardToDel1.style.transform = 'scale(0)';
+                cardToDel1.style.opacity = '0';
+                cardToDel1.style.transition = 'all 0.3s ease';
+            }
+            if (cardToDel2) {
+                cardToDel2.style.transform = 'scale(0)';
+                cardToDel2.style.opacity = '0';
+                cardToDel2.style.transition = 'all 0.3s ease';
+            }
+            selectedRadicalCard = null;
+            selectedComponentCard = null;
+
+            setTimeout(() => {
+                if (cardToDel1) cardToDel1.remove();
+                if (cardToDel2) cardToDel2.remove();
+
+                if (!addCombinedWord) return;
+                const zoneEl = document.querySelector('.composition-zone-deck');
+                if (!zoneEl) return;
+                const compZone = zoneEl.querySelector('.composition-zone-deck .cards-container') || zoneEl;
+                const newWordCard = document.createElement('div');
+                newWordCard.className = "game-card component-card combined-word-card";
+                newWordCard.innerHTML = `
+                    <div class="card-inner flex-center">
+                        <div class="card-main-char">${fusionData.newChar}</div>
+                        <div class="card-tag">已合成</div>
+                    </div>
+                `;
+                if (compZone.firstChild) {
+                    compZone.insertBefore(newWordCard, compZone.firstChild);
+                } else {
+                    compZone.appendChild(newWordCard);
+                }
+            }, 300);
+        }
+
+        function showMinshengChoice(fusionData) {
+            pendingMinshengFusion = fusionData;
+            const screen = document.getElementById('minshengChoiceScreen');
+            const wordText = document.getElementById('minshengChoiceWord');
+            const message = document.getElementById('minshengChoiceMessage');
+            if (wordText) wordText.textContent = `你組出了「${fusionData.newChar}」，可選擇保留一張素材牌`;
+            if (message) message.textContent = '';
+            if (screen) {
+                screen.querySelectorAll('button').forEach(button => button.disabled = false);
+                screen.classList.remove('hidden');
+            }
+        }
+
+        async function finalizeNormalFusion(fusionData, preserveType = null) {
+            const forceEl = document.querySelector('.value-force');
+            const cultureEl = document.querySelector('.value-culture');
+            if (forceEl) {
+                const currentForce = parseInt(forceEl.innerText) || 0;
+                animateResourceGain(fusionData.visualReward.force, fusionData.sourceEl, forceEl, 'force', () => {
+                    forceEl.innerText = currentForce + fusionData.visualReward.force;
+                }, 120);
+            }
+            if (cultureEl) {
+                const currentCulture = parseInt(cultureEl.innerText) || 0;
+                animateResourceGain(fusionData.visualReward.culture, fusionData.sourceEl, cultureEl, 'culture', () => {
+                    cultureEl.innerText = currentCulture + fusionData.visualReward.culture;
+                }, 120);
+            }
+
+            let result = null;
+            if (networkSession) {
+                result = await networkRequest(`/api/rooms/${networkSession.code}/resource`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        playerId: networkSession.playerId,
+                        force: fusionData.reward.force,
+                        culture: fusionData.reward.culture,
+                        reason: 'fusion',
+                        word: fusionData.newChar,
+                        element: fusionData.element
+                    })
+                });
+                applyRoomState(result.room);
+                if (result.zhugeBeifaTriggered) {
+                    showZhugeBeifaRewardChoice();
+                }
+                const zhugeFusionDrawKey = `${result.room.round}:fusion`;
+                if (currentZhugeStrategy === 'junlue' && lastZhugeFusionDrawKey !== zhugeFusionDrawKey) {
+                    lastZhugeFusionDrawKey = zhugeFusionDrawKey;
+                    drawExtraComponentCard('隆中對・軍略 第一次組字後額外抽到部件牌');
+                }
+            }
+
+            if (fusionData.panel) fusionData.panel.style.display = 'none';
+            removeFusionSourceCards(fusionData, true, preserveType);
+            if (preserveType) {
+                appendLocalLog(`諸葛觸發隆中對・民生，保留了${preserveType === 'radical' ? '部首牌' : '部件牌'}`);
+            }
+            return result;
+        }
+
+        async function resolveMinshengChoice(preserveType) {
+            const fusionData = pendingMinshengFusion;
+            if (!fusionData) return;
+            const screen = document.getElementById('minshengChoiceScreen');
+            const message = document.getElementById('minshengChoiceMessage');
+            const buttons = screen ? screen.querySelectorAll('button') : [];
+            buttons.forEach(button => button.disabled = true);
+            if (message) message.textContent = '正在保留手牌…';
+            try {
+                await finalizeNormalFusion(fusionData, preserveType);
+                pendingMinshengFusion = null;
+                if (screen) screen.classList.add('hidden');
+            } catch (error) {
+                if (message) message.textContent = error.message;
+                buttons.forEach(button => button.disabled = false);
+            }
+        }
+
+        async function resolveHanxinFusionChoice(choice) {
+            const fusionData = pendingHanxinFusion;
+            if (!fusionData || !networkSession) return;
+            const screen = document.getElementById('hanxinFusionChoiceScreen');
+            const message = document.getElementById('hanxinFusionChoiceMessage');
+            const buttons = screen ? screen.querySelectorAll('button') : [];
+            buttons.forEach(button => button.disabled = true);
+
+            try {
+                if (choice === 'ambush') {
+                    const localPlayer = multiplayerRoomState && networkSession
+                        ? multiplayerRoomState.players[(multiplayerRoomState.yourPlayerNumber || 1) - 1]
+                        : null;
+                    const ambushCards = localPlayer && Array.isArray(localPlayer.ambushCards) ? localPlayer.ambushCards : [];
+                    if (ambushCards.length >= 3) {
+                        throw new Error('奇兵區已滿，請先移出一張');
+                    }
+                    if (message) message.textContent = '正在放入奇兵區…';
+                    const result = await networkRequest(`/api/rooms/${networkSession.code}/ambush`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            playerId: networkSession.playerId,
+                            word: fusionData.newChar,
+                            force: 0,
+                            culture: 0
+                        })
+                    });
+                    if (fusionData.panel) fusionData.panel.style.display = 'none';
+                    removeFusionSourceCards(fusionData, false);
+                    applyRoomState(result.room);
+                } else {
+                    if (message) message.textContent = '正在直接合成…';
+                    await finalizeNormalFusion(fusionData);
+                }
+
+                pendingHanxinFusion = null;
+                if (screen) screen.classList.add('hidden');
+            } catch (error) {
+                if (message) message.textContent = error.message;
+                buttons.forEach(button => button.disabled = false);
+            }
+        }
+
+        // 把伺服器回傳的最新房間狀態套到畫面上。
+        // 這裡是多人同步的核心：回合、分數、城池、紀錄、按鈕鎖定都在這裡更新。
+        function applyRoomState(room) {
+            multiplayerRoomState = room;
+            if (room.gameOver) {
+                leaveHasBeenReported = true;
+                if (roomSyncTimer) clearInterval(roomSyncTimer);
+                if (heartbeatTimer) clearInterval(heartbeatTimer);
+            }
+            const matchmakingScreen = document.getElementById('matchmakingScreen');
+            document.getElementById('waitingPlayerCount').textContent = room.players.length;
+            matchmakingScreen.classList.toggle('hidden', room.players.length >= 2);
+            isLocalPlayersTurn = room.yourTurn === true;
+
+            const roundNumber = document.querySelector('.round-num');
+            if (roundNumber) roundNumber.textContent = room.round;
+            renderTurnOrder(room);
+            const localPlayer = room.players[(room.yourPlayerNumber || 1) - 1];
+            renderGuojiaObservation(localPlayer);
+            renderHanxinAmbush(localPlayer);
+            currentYixingStatus = localPlayer ? (localPlayer.yixingStatus || null) : null;
+            currentZhugeStrategy = localPlayer ? (localPlayer.zhugeStrategy || null) : null;
+            currentZhugeBeifaElement = localPlayer ? (localPlayer.zhugeBeifaElement || null) : null;
+            currentHanxinAmbushTactic = localPlayer ? (localPlayer.hanxinAmbushTactic || null) : null;
+            currentXiangyuAllInRound = localPlayer ? (localPlayer.xiangyuAllInRound || null) : null;
+            currentCaocaoTuntianDoubleLeft = localPlayer ? (localPlayer.caocaoTuntianDoubleLeft || 0) : 0;
+            beginGameplayIfReady(room);
+            const activeSkillItem = document.querySelector('.skill-item');
+            const activeCast = document.querySelector('.active-cast');
+            if (activeSkillItem && localPlayer) {
+                const usedCaocaoSkill = localPlayer.heroId === 'Cao-Cao' && localPlayer.caocaoTuntianRoundUsed === room.round;
+                const guanYuUsedCount = localPlayer.heroId === 'Guan-Yu' ? (localPlayer.guanYuWaterFloodUsed || 0) : 0;
+                const usedGuojiaSkill = localPlayer.heroId === 'Guo-Jia' && localPlayer.guojiaCutRoundUsed === room.round;
+                const usedZhugeSkill = localPlayer.heroId === 'Zhuge-Liang' && localPlayer.zhugeBeifaRoundUsed === room.round;
+                const zhugeBeifaAvailableRound = localPlayer.heroId === 'Zhuge-Liang' ? getZhugeBeifaAvailableRound(localPlayer) : 0;
+                const zhugeBeifaCoolingDown = localPlayer.heroId === 'Zhuge-Liang' && isZhugeBeifaCoolingDown(localPlayer, room.round);
+                const usedXiangyuSkill = localPlayer.heroId === 'Xiang-Yu' && localPlayer.xiangyuAllInRound === room.round;
+                const choseXiangyuSkill = localPlayer.heroId === 'Xiang-Yu' && localPlayer.xiangyuAllInChoiceRound === room.round;
+                const xiangyuSkillUsedGame = localPlayer.heroId === 'Xiang-Yu' && localPlayer.xiangyuAllInUsed;
+                const hanxinPendingCount = Array.isArray(localPlayer.hanxinAmbushTactic)
+                    ? localPlayer.hanxinAmbushTactic.length
+                    : localPlayer.hanxinAmbushTactic ? 1 : 0;
+                const hanxinSkillLocked = localPlayer.heroId === 'Han-Xin' && (localPlayer.hanxinAmbushSkillUsed || 0) >= 2;
+                activeSkillItem.classList.toggle('skill-used', usedCaocaoSkill || guanYuUsedCount >= 2 || usedGuojiaSkill || usedZhugeSkill || zhugeBeifaCoolingDown || hanxinSkillLocked || choseXiangyuSkill || xiangyuSkillUsedGame);
+                if (activeCast && localPlayer.heroId === 'Cao-Cao') {
+                    activeCast.textContent = usedCaocaoSkill ? `已施策・剩${localPlayer.caocaoTuntianDoubleLeft || 0}次` : '1回施策';
+                } else if (activeCast && localPlayer.heroId === 'Guan-Yu') {
+                    activeCast.textContent = `剩${Math.max(0, 2 - guanYuUsedCount)}次`;
+                } else if (activeCast && localPlayer.heroId === 'Guo-Jia') {
+                    activeCast.textContent = usedGuojiaSkill ? '本回合已施策' : '1回施策';
+                } else if (activeCast && localPlayer.heroId === 'Zhuge-Liang') {
+                    activeCast.textContent = currentZhugeBeifaElement
+                        ? `已宣告${WUXING_ELEMENT_LABELS[currentZhugeBeifaElement] || ''}`
+                        : zhugeBeifaCoolingDown
+                            ? `第${zhugeBeifaAvailableRound}回合可用`
+                            : '2回施策';
+                } else if (activeCast && localPlayer.heroId === 'Han-Xin') {
+                    const usedCount = localPlayer.hanxinAmbushSkillUsed || 0;
+                    activeCast.textContent = hanxinPendingCount > 0
+                        ? `待發動${hanxinPendingCount}層・剩${Math.max(0, 2 - usedCount)}次`
+                        : `剩${Math.max(0, 2 - usedCount)}次`;
+                } else if (activeCast && localPlayer.heroId === 'Xiang-Yu') {
+                    activeCast.textContent = usedXiangyuSkill
+                        ? '全押狀態'
+                        : xiangyuSkillUsedGame
+                            ? '整局已發動'
+                            : choseXiangyuSkill
+                                ? '本回合不發動'
+                                : '回合開始選擇';
+                }
+            }
+            const yixingScreen = document.getElementById('yixingChoiceScreen');
+            if (yixingScreen && localPlayer) {
+                const shouldChooseYixing = gameHasStarted &&
+                    room.players.length >= 2 &&
+                    localPlayer.passiveId === 'yixing_choice' &&
+                    !localPlayer.yixingStatus &&
+                    !room.gameOver;
+                yixingScreen.classList.toggle('hidden', !shouldChooseYixing);
+                if (shouldChooseYixing) {
+                    yixingScreen.querySelectorAll('button').forEach(button => {
+                        button.disabled = false;
+                    });
+                    const yixingMessage = document.getElementById('yixingChoiceMessage');
+                    if (yixingMessage) yixingMessage.textContent = '';
+                }
+            }
+            const zhugeScreen = document.getElementById('zhugeChoiceScreen');
+            if (zhugeScreen && localPlayer) {
+                const shouldChooseZhuge = gameHasStarted &&
+                    room.players.length >= 2 &&
+                    localPlayer.passiveId === 'zhuge_strategy' &&
+                    !localPlayer.zhugeStrategy &&
+                    !room.gameOver;
+                zhugeScreen.classList.toggle('hidden', !shouldChooseZhuge);
+                if (shouldChooseZhuge) {
+                    zhugeScreen.querySelectorAll('button').forEach(button => {
+                        button.disabled = false;
+                    });
+                    const zhugeMessage = document.getElementById('zhugeChoiceMessage');
+                    if (zhugeMessage) zhugeMessage.textContent = '';
+                }
+            }
+            const xiangyuScreen = document.getElementById('xiangyuChoiceScreen');
+            if (xiangyuScreen && localPlayer) {
+                const shouldChooseXiangyuAllIn = gameHasStarted &&
+                    room.players.length >= 2 &&
+                    isLocalPlayersTurn &&
+                    localPlayer.heroId === 'Xiang-Yu' &&
+                    !localPlayer.xiangyuAllInUsed &&
+                    localPlayer.xiangyuAllInChoiceRound !== room.round &&
+                    !room.gameOver;
+                xiangyuScreen.classList.toggle('hidden', !shouldChooseXiangyuAllIn);
+                if (shouldChooseXiangyuAllIn) {
+                    xiangyuScreen.querySelectorAll('button').forEach(button => {
+                        button.disabled = false;
+                    });
+                    const xiangyuMessage = document.getElementById('xiangyuChoiceMessage');
+                    if (xiangyuMessage) xiangyuMessage.textContent = '';
+                }
+            }
+            if (selectedCityId) {
+                const attackCostText = document.getElementById('attackCostText');
+                if (attackCostText) {
+                    attackCostText.textContent = `需要武力：${getAttackCost(selectedCityDefense)}`;
+                }
+            }
+            const scoreDisplay = document.querySelector('.value-score');
+            if (scoreDisplay && localPlayer) scoreDisplay.textContent = localPlayer.score || 0;
+            const forceDisplay = document.querySelector('.value-force');
+            if (forceDisplay && localPlayer && localPlayer.force !== undefined) {
+                forceDisplay.textContent = localPlayer.force || 0;
+            }
+            const cultureDisplay = document.querySelector('.value-culture');
+            if (cultureDisplay && localPlayer && localPlayer.culture !== undefined) {
+                cultureDisplay.textContent = localPlayer.culture || 0;
+            }
+            const endTurnButton = document.getElementById('endTurnButton');
+            const endTurnStatus = document.getElementById('endTurnStatus');
+            endTurnButton.disabled = !isLocalPlayersTurn;
+            const turnActionButtons = [
+                document.getElementById('cityAttackBtn'),
+                document.getElementById('cityUpgradeBtn'),
+                document.querySelector('.fusion-action-btn')
+            ];
+            turnActionButtons.forEach(button => {
+                if (button) button.disabled = room.gameOver || (room.players.length === 2 && !isLocalPlayersTurn);
+            });
+            drawCardsForActiveTurn(room);
+            renderGameResult(room);
+            endTurnStatus.textContent = room.players.length < 2
+                ? '等待配對'    // 第 ${room.round} 回合・你的行動
+                : isLocalPlayersTurn ? `第 ${room.round} 回合・你的行動` : `第 ${room.round} 回合・對手行動`;
+            Object.entries(room.cities).forEach(([cityId, city]) => {
+                const cityEl = document.getElementById(`castle-${cityId}`);
+                if (!cityEl) return;
+                const stats = cityEl.querySelector('.node-stats');
+                if (stats) stats.textContent = `${city.defense}/${city.points}`;
+                const owner = city.ownerPlayerNumber
+                    ? room.players[city.ownerPlayerNumber - 1]
+                    : room.players.find(player => player.heroName === city.player);
+                const avatar = document.getElementById(`avatar-${cityId}`);
+                if (avatar && owner && owner.heroId) {
+                    avatar.src = `images/heros/${owner.heroId}.jpg`;
+                    avatar.style.display = 'block';
+                }
+                const boxEl = cityEl.querySelector('.city-node-box');
+                if (boxEl) {
+                    boxEl.classList.toggle('water-flooded-city', city.guanYuWaterFloodRound === room.round);
+                }
+            });
+
+            const logContent = document.getElementById('log-content');
+            if (logContent) {
+                const wasNearBottom = logContent.scrollHeight - logContent.scrollTop - logContent.clientHeight < 24;
+                logContent.querySelectorAll('.network-log').forEach(node => node.remove());
+                room.logs.forEach(entry => {
+                    const line = document.createElement('div');
+                    line.className = 'log-line network-log';
+                    line.innerHTML = colorizeLogText(entry.text);
+                    logContent.appendChild(line);
+                });
+                if (wasNearBottom) {
+                    logContent.scrollTop = logContent.scrollHeight;
+                }
+            }
+        }
+
+        // 每秒向伺服器拿一次房間資料，讓兩位玩家的畫面保持同步。
+        async function pollRoomState() {
+            if (!networkSession) return;
+            try {
+                const result = await networkRequest(`/api/rooms/${networkSession.code}?playerId=${encodeURIComponent(networkSession.playerId)}`);
+                applyRoomState(result.room);
+            } catch (error) {
+                console.error('房間同步中斷：', error);
+            }
+        }
+
+        // 建立或加入房間成功後，保存自己的房號與 playerId，並開始同步房間。
+        function enterNetworkRoom(result) {
+            networkSession = { code: result.room.code, playerId: result.playerId, playerNumber: result.playerNumber };
+            applyRoomState(result.room);
+            document.getElementById('multiplayerLobby').classList.add('hidden');
+            document.getElementById('waitingRoomCode').textContent = result.room.code;
+            startGameWithHero(selectedLobbyHeroId);
+            announceNetworkHero(selectedLobbyHeroId);
+            if (roomSyncTimer) clearInterval(roomSyncTimer);
+            roomSyncTimer = setInterval(pollRoomState, 1000);
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+            heartbeatTimer = setInterval(sendHeartbeat, 5000);
+        }
+
+        // 頁面還開著但玩家沒有操作時，也定期通知後端「我還在線」。
+        async function sendHeartbeat() {
+            if (!networkSession || leaveHasBeenReported) return;
+            try {
+                const result = await networkRequest(`/api/rooms/${networkSession.code}/ping`, {
+                    method: 'POST',
+                    body: JSON.stringify({ playerId: networkSession.playerId })
+                });
+                applyRoomState(result.room);
+            } catch (error) {
+                console.error('心跳同步失敗：', error);
+            }
+        }
+
+        // 選英雄後告訴伺服器，讓另一位玩家也能看到你選了哪隻角色。
+        async function announceNetworkHero(heroId) {
+            if (!networkSession) return;
+            try {
+                const result = await networkRequest(`/api/rooms/${networkSession.code}/hero`, {
+                    method: 'POST', body: JSON.stringify({ playerId: networkSession.playerId, heroId })
+                });
+                applyRoomState(result.room);
+            } catch (error) {
+                console.error('同步英雄失敗：', error);
+            }
+        }
+
+        // 關羽被動：開局選擇義行狀態（忠 / 義 / 斬）。
+        async function chooseYixingStatus(choice) {
+            if (!networkSession) return;
+            const screen = document.getElementById('yixingChoiceScreen');
+            const message = document.getElementById('yixingChoiceMessage');
+            const buttons = screen ? screen.querySelectorAll('button') : [];
+            buttons.forEach(button => button.disabled = true);
+            if (message) message.textContent = '正在立下義行…';
+            try {
+                const result = await networkRequest(`/api/rooms/${networkSession.code}/passive-choice`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        playerId: networkSession.playerId,
+                        choice
+                    })
+                });
+                if (screen) screen.classList.add('hidden');
+                applyRoomState(result.room);
+            } catch (error) {
+                if (message) message.textContent = error.message;
+                buttons.forEach(button => button.disabled = false);
+            }
+        }
+
+        // 諸葛被動：開局選擇隆中對方向。
+        async function chooseZhugeStrategy(strategy) {
+            if (!networkSession) return;
+            const screen = document.getElementById('zhugeChoiceScreen');
+            const message = document.getElementById('zhugeChoiceMessage');
+            const buttons = screen ? screen.querySelectorAll('button') : [];
+            buttons.forEach(button => button.disabled = true);
+            if (message) message.textContent = '正在定下隆中之策…';
+            try {
+                const result = await networkRequest(`/api/rooms/${networkSession.code}/zhuge-strategy`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        playerId: networkSession.playerId,
+                        strategy
+                    })
+                });
+                if (screen) screen.classList.add('hidden');
+                applyRoomState(result.room);
+            } catch (error) {
+                if (message) message.textContent = error.message;
+                buttons.forEach(button => button.disabled = false);
+            }
+        }
+        window.chooseZhugeStrategy = chooseZhugeStrategy;
+
+        document.querySelectorAll('[data-zhuge-strategy]').forEach(button => {
+            button.addEventListener('click', () => chooseZhugeStrategy(button.dataset.zhugeStrategy));
+        });
+
+        function showZhugeBeifaChoice() {
+            const screen = document.getElementById('zhugeBeifaChoiceScreen');
+            const message = document.getElementById('zhugeBeifaChoiceMessage');
+            if (message) message.textContent = '';
+            if (screen) {
+                screen.querySelectorAll('button').forEach(button => button.disabled = false);
+                screen.classList.remove('hidden');
+            }
+        }
+
+        function closeZhugeBeifaChoice() {
+            const screen = document.getElementById('zhugeBeifaChoiceScreen');
+            const message = document.getElementById('zhugeBeifaChoiceMessage');
+            if (message) message.textContent = '';
+            if (screen) screen.classList.add('hidden');
+        }
+        window.closeZhugeBeifaChoice = closeZhugeBeifaChoice;
+
+        async function chooseZhugeBeifaElement(element) {
+            if (!networkSession) return;
+            const screen = document.getElementById('zhugeBeifaChoiceScreen');
+            const message = document.getElementById('zhugeBeifaChoiceMessage');
+            const buttons = screen ? screen.querySelectorAll('button') : [];
+            buttons.forEach(button => button.disabled = true);
+            if (message) message.textContent = `正在宣告${WUXING_ELEMENT_LABELS[element] || ''}行…`;
+            try {
+                const result = await networkRequest(`/api/rooms/${networkSession.code}/zhuge-beifa`, {
+                    method: 'POST',
+                    body: JSON.stringify({ playerId: networkSession.playerId, element })
+                });
+                if (screen) screen.classList.add('hidden');
+                applyRoomState(result.room);
+                playSkillCutscene({
+                    heroName: currentHero?.name || '諸葛',
+                    heroAvatar: currentHero?.avatar || 'images/heros/Zhuge-Liang.jpg',
+                    skillName: document.querySelector('.active-name')?.textContent || '北伐'
+                });
+            } catch (error) {
+                if (message) message.textContent = error.message;
+                buttons.forEach(button => button.disabled = false);
+            }
+        }
+
+        document.querySelectorAll('[data-beifa-element]').forEach(button => {
+            button.addEventListener('click', () => chooseZhugeBeifaElement(button.dataset.beifaElement));
+        });
+
+        async function chooseXiangyuAllIn(activate) {
+            if (!networkSession) return;
+            const screen = document.getElementById('xiangyuChoiceScreen');
+            const message = document.getElementById('xiangyuChoiceMessage');
+            const buttons = screen ? screen.querySelectorAll('button') : [];
+            buttons.forEach(button => button.disabled = true);
+            if (message) message.textContent = activate ? '正在破釜沈舟…' : '正在保留兵勢…';
+            try {
+                const result = await networkRequest(`/api/rooms/${networkSession.code}/${activate ? 'xiangyu-all-in' : 'xiangyu-all-in-skip'}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ playerId: networkSession.playerId })
+                });
+                if (screen) screen.classList.add('hidden');
+                applyRoomState(result.room);
+                if (activate) {
+                    playSkillCutscene({
+                        heroName: currentHero?.name || '項羽',
+                        heroAvatar: currentHero?.avatar || 'images/heros/Xiang-Yu.jpg',
+                        skillName: document.querySelector('.active-name')?.textContent || '破釜沈舟'
+                    });
+                }
+            } catch (error) {
+                if (message) message.textContent = error.message;
+                buttons.forEach(button => button.disabled = false);
+            }
+        }
+        window.chooseXiangyuAllIn = chooseXiangyuAllIn;
+
+        function playSkillCutscene({ heroName, heroAvatar, skillName }) {
+            const cutscene = document.getElementById('skillCutscene');
+            const avatar = document.getElementById('skillCutsceneAvatar');
+            const name = document.getElementById('skillCutsceneName');
+            const hero = document.getElementById('skillCutsceneHero');
+            if (!cutscene || !avatar || !name || !hero) return;
+
+            avatar.src = heroAvatar || document.querySelector('.avatar-img')?.src || '';
+            avatar.alt = heroName || '英雄';
+            name.textContent = skillName || '主動技能';
+            hero.textContent = heroName || '';
+
+            cutscene.classList.remove('hidden');
+            cutscene.style.animation = 'none';
+            cutscene.querySelectorAll('.skill-cutscene-flash, .skill-cutscene-card, .skill-cutscene-avatar-ring, .skill-cutscene-info').forEach(element => {
+                element.style.animation = 'none';
+                void element.offsetWidth;
+                element.style.animation = '';
+            });
+            void cutscene.offsetWidth;
+            cutscene.style.animation = '';
+
+            clearTimeout(cutscene.hideTimer);
+            cutscene.hideTimer = setTimeout(() => {
+                cutscene.classList.add('hidden');
+            }, 1150);
+        }
+
+        async function useActiveSkill() {
+            if (!networkSession || !isLocalPlayersTurn) {
+                showTurnActionNotice('使用技能');
+                return;
+            }
+            if (currentHeroId !== 'Cao-Cao' && currentHeroId !== 'Guan-Yu' && currentHeroId !== 'Guo-Jia' && currentHeroId !== 'Han-Xin' && currentHeroId !== 'Xiang-Yu' && currentHeroId !== 'Zhuge-Liang') {
+                appendLocalLog('系統｜這個角色的主動技能尚未實作');
+                return;
+            }
+            if (currentHeroId === 'Guan-Yu' && !selectedCityId) {
+                appendLocalLog('系統｜請先點選一座城池，再使用水淹七軍');
+                return;
+            }
+            if (currentHeroId === 'Guo-Jia' && selectedGuojiaObservationIndex === null) {
+                appendLocalLog('系統｜請先在先見紀錄中點選一筆紀錄，再使用截斷');
+                return;
+            }
+            if (currentHeroId === 'Han-Xin') {
+                const localPlayer = multiplayerRoomState && networkSession
+                    ? multiplayerRoomState.players[(multiplayerRoomState.yourPlayerNumber || 1) - 1]
+                    : null;
+                if ((localPlayer?.hanxinAmbushSkillUsed || 0) >= 2) {
+                    appendLocalLog('系統｜十面埋伏本局已用完');
+                    return;
+                }
+                showHanxinAmbushSkillChoice(localPlayer);
+                return;
+            }
+            if (currentHeroId === 'Zhuge-Liang') {
+                const localPlayer = multiplayerRoomState && networkSession
+                    ? multiplayerRoomState.players[(multiplayerRoomState.yourPlayerNumber || 1) - 1]
+                    : null;
+                if (localPlayer?.zhugeBeifaRoundUsed === multiplayerRoomState.round) {
+                    appendLocalLog('系統｜北伐本回合已經宣告過');
+                    return;
+                }
+                if (isZhugeBeifaCoolingDown(localPlayer, multiplayerRoomState.round)) {
+                    appendLocalLog(`系統｜北伐尚在冷卻，第 ${getZhugeBeifaAvailableRound(localPlayer)} 回合才能再次宣告`);
+                    return;
+                }
+                showZhugeBeifaChoice();
+                return;
+            }
+            if (currentHeroId === 'Xiang-Yu') {
+                const localPlayer = multiplayerRoomState && networkSession
+                    ? multiplayerRoomState.players[(multiplayerRoomState.yourPlayerNumber || 1) - 1]
+                    : null;
+                if (localPlayer?.xiangyuAllInUsed) {
+                    appendLocalLog('系統｜破釜沈舟整局只能發動一次');
+                    return;
+                }
+                if (localPlayer?.xiangyuAllInChoiceRound === multiplayerRoomState.round) {
+                    appendLocalLog('系統｜本回合已經選擇過破釜沈舟');
+                    return;
+                }
+                const screen = document.getElementById('xiangyuChoiceScreen');
+                if (screen) screen.classList.remove('hidden');
+                return;
+            }
+
+            const skillItem = document.querySelector('.skill-item');
+            if (skillItem) skillItem.classList.add('skill-using');
+            try {
+                const skillPath = currentHeroId === 'Guan-Yu'
+                    ? 'guanyu-water-flood'
+                    : currentHeroId === 'Guo-Jia'
+                        ? 'guojia-cut'
+                        : currentHeroId === 'Xiang-Yu'
+                            ? 'xiangyu-all-in'
+                            : 'caocao-tuntian';
+                const payload = currentHeroId === 'Guan-Yu'
+                    ? { playerId: networkSession.playerId, cityId: selectedCityId }
+                    : currentHeroId === 'Guo-Jia'
+                        ? { playerId: networkSession.playerId, observationIndex: selectedGuojiaObservationIndex }
+                        : { playerId: networkSession.playerId };
+                const result = await networkRequest(`/api/rooms/${networkSession.code}/${skillPath}`, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                applyRoomState(result.room);
+                playSkillCutscene({
+                    heroName: currentHero?.name || (currentHeroId === 'Guan-Yu' ? '關羽' : currentHeroId === 'Guo-Jia' ? '郭嘉' : currentHeroId === 'Xiang-Yu' ? '項羽' : '曹操'),
+                    heroAvatar: currentHero?.avatar || `images/heros/${currentHeroId || 'Cao-Cao'}.jpg`,
+                    skillName: document.querySelector('.active-name')?.textContent || (currentHeroId === 'Guan-Yu' ? '水淹七軍' : currentHeroId === 'Guo-Jia' ? '截斷' : currentHeroId === 'Xiang-Yu' ? '破釜沈舟' : '屯田令')
+                });
+                if (currentHeroId === 'Guan-Yu') {
+                    selectCity(selectedCityId);
+                } else if (currentHeroId === 'Guo-Jia') {
+                    selectedGuojiaObservationIndex = null;
+                }
+            } catch (error) {
+                appendLocalLog(`系統｜${error.message}`);
+            } finally {
+                if (skillItem) {
+                    setTimeout(() => skillItem.classList.remove('skill-using'), 450);
+                }
+            }
+        }
+        window.useActiveSkill = useActiveSkill;
+
+        const activeSkillItem = document.querySelector('.skill-item');
+        if (activeSkillItem) {
+            activeSkillItem.addEventListener('click', useActiveSkill);
+        }
+
+        // 按下「結束回合」後通知伺服器換下一位玩家行動。
+        async function endNetworkTurn() {
+            if (!networkSession || !isLocalPlayersTurn) return;
+            const button = document.getElementById('endTurnButton');
+            button.disabled = true;
+            document.getElementById('endTurnStatus').textContent = '正在交接操作權…';
+            try {
+                const result = await networkRequest(`/api/rooms/${networkSession.code}/end-turn`, {
+                    method: 'POST', body: JSON.stringify({ playerId: networkSession.playerId })
+                });
+                applyRoomState(result.room);
+            } catch (error) {
+                button.disabled = false;
+                document.getElementById('endTurnStatus').textContent = error.message;
+            }
+        }
+
+        // 輪到自己時自動抽 1 張部首牌與 1 張部件牌
+        function drawCardsForActiveTurn(room) {
+            if (!gameHasStarted || !room || room.players.length < 2 || room.yourTurn !== true) return;
+            const drawKey = `${room.round}:${room.currentPlayerNumber}`;
+            if (drawKey === lastTurnDrawKey) return;
+            lastTurnDrawKey = drawKey;
+            drawTurnCards();
+        }
+
+        function beginGameplayIfReady(room) {
+            if (gameHasStarted) return;
+            if (networkSession) {
+                if (!room || room.players.length < 2 || !currentHeroId) return;
+            }
+            initRandomDecks();
+            gameHasStarted = true;
+        }
+
+        // 從首頁或選角頁正式進入遊戲。首頁已選好的英雄會直接沿用。
+        function startGameWithHero(heroId) {
+            if (!heroId) return;
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen) startScreen.classList.add('hidden');
+            currentHeroId = heroId;
+            selectHero(heroId);
+            beginGameplayIfReady(multiplayerRoomState);
+            if (multiplayerRoomState) applyRoomState(multiplayerRoomState);
+            drawCardsForActiveTurn(multiplayerRoomState);
+        }
+
+        // 右側遊戲紀錄輸入框：傳送玩家自己打的文字。
+        async function sendGameLogMessage() {
+            const input = document.querySelector('.log-input');
+            const button = document.querySelector('.btn-send');
+            const message = input ? input.value.trim() : '';
+            if (!message) return;
+            if (button) button.disabled = true;
+            try {
+                if (networkSession) {
+                    const result = await networkRequest(`/api/rooms/${networkSession.code}/message`, {
+                        method: 'POST',
+                        body: JSON.stringify({ playerId: networkSession.playerId, message })
+                    });
+                    applyRoomState(result.room);
+                } else {
+                    const speaker = currentHero ? currentHero.name : '玩家';
+                    appendLocalLog(`${speaker}：${message}`);
+                }
+                input.value = '';
+            } catch (error) {
+                appendLocalLog(`系統｜${error.message}`);
+            } finally {
+                if (button) button.disabled = false;
+                if (input) input.focus();
+            }
+        }
+
+        // 玩家關閉分頁、重新整理、跳離頁面時，通知後端進行離線結算。
+        function reportLeaveGame() {
+            if (!networkSession || leaveHasBeenReported) return;
+            leaveHasBeenReported = true;
+            const payload = JSON.stringify({ playerId: networkSession.playerId });
+            const url = `${NETWORK_API}/api/rooms/${networkSession.code}/leave`;
+
+            // sendBeacon 比較適合在頁面卸載時送出資料；不支援時用 keepalive fetch 備援。
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+                return;
+            }
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: payload,
+                keepalive: true
+            }).catch(() => {});
+        }
+
+        // 網頁元素載入完成後，綁定多人房間、聊天、結束回合相關按鈕。
+        document.addEventListener('DOMContentLoaded', () => {
+            const lobbyMessage = document.getElementById('lobbyMessage');
+            const playerNameInput = document.getElementById('networkPlayerName');
+            const roomCodeInput = document.getElementById('roomCodeInput');
+            const lobbyHeroImage = document.getElementById('lobbyHeroImage');
+            const lobbyHeroName = document.getElementById('lobbyHeroName');
+            const openLobbyHeroSelect = document.getElementById('openLobbyHeroSelect');
+            const closeLobbyHeroSelect = document.getElementById('closeLobbyHeroSelect');
+            const lobbyCharacterScreen = document.getElementById('lobbyCharacterScreen');
+            const lobbyCharacterGrid = document.getElementById('lobbyCharacterGrid');
+            const confirmLobbyHeroSelect = document.getElementById('confirmLobbyHeroSelect');
+            const lobbyHeroes = [
+                { id: 'Cao-Cao', name: '曹操', faction: 'Wei', avatar: 'images/heros/Cao-Cao.jpg' },
+                { id: 'Guo-Jia', name: '郭嘉', faction: 'Wei', avatar: 'images/heros/Guo-Jia.jpg' },
+                { id: 'Zhuge-Liang', name: '諸葛亮', faction: 'Shu', avatar: 'images/heros/Zhuge-Liang.jpg' },
+                { id: 'Guan-Yu', name: '關羽', faction: 'Shu', avatar: 'images/heros/Guan-Yu.jpg' },
+                { id: 'Han-Xin', name: '韓信', faction: 'Other', avatar: 'images/heros/Han-Xin.jpg' },
+                { id: 'Xiang-Yu', name: '項羽', faction: 'Other', avatar: 'images/heros/Xiang-Yu.jpg' }
+            ];
+            const lobbyFactionLabels = { Wei: '魏', Shu: '蜀', Other: '群' };
+            const lobbyFactionNames = { Wei: '魏國武將', Shu: '蜀漢武將', Other: '群雄武將' };
+            const lobbyHeroIntros = {
+                'Cao-Cao': '治世之能臣，亂世之雄主。善於經營國力，以深謀遠慮掌握戰局。',
+                'Guo-Jia': '洞察先機的鬼才軍師，擅長觀測對手行動，在關鍵時刻截斷敵方策略。',
+                'Guan-Yu': '忠義無雙的武聖，攻守兼備，能以義行鼓舞友軍並震懾敵方城池。',
+                'Zhuge-Liang': '運籌帷幄的臥龍，能依局勢選擇軍略、民生或天機，穩健拓展優勢。',
+                'Han-Xin': '用兵如神的兵仙，擅長暗藏奇兵，等待最佳時機一舉改變戰局。',
+                'Xiang-Yu': '勇冠天下的西楚霸王，以強大武力壓制戰場，適合果斷進行連續攻城。'
+            };
+            let draftLobbyHeroId = selectedLobbyHeroId;
+
+            function setLobbyMainHero(heroId) {
+                const rosterHero = lobbyHeroes.find(hero => hero.id === heroId);
+                if (!rosterHero) return;
+                selectedLobbyHeroId = heroId;
+                draftLobbyHeroId = heroId;
+                if (lobbyHeroImage) {
+                    lobbyHeroImage.src = rosterHero.avatar;
+                    lobbyHeroImage.alt = rosterHero.name;
+                }
+                if (lobbyHeroName) lobbyHeroName.textContent = rosterHero.name;
+                renderLobbyCharacterGrid();
+            }
+
+            async function renderLobbyHeroDetail(heroId) {
+                const rosterHero = lobbyHeroes.find(hero => hero.id === heroId);
+                if (!rosterHero) return;
+                draftLobbyHeroId = heroId;
+                document.querySelectorAll('.lobby-character-card').forEach(card => {
+                    card.classList.toggle('selected', card.dataset.heroId === heroId);
+                });
+                try {
+                    const response = await fetch(`${NETWORK_API}/api/hero/${heroId}`);
+                    const result = await response.json();
+                    const hero = result.success ? result.data : null;
+                    if (!hero) return;
+                    document.getElementById('lobbyDetailFaction').textContent = lobbyFactionNames[rosterHero.faction] || '亂世英雄';
+                    document.getElementById('lobbyDetailHeroName').textContent = hero.name;
+                    document.getElementById('lobbyDetailHeroImage').src = hero.avatar;
+                    document.getElementById('lobbyDetailHeroImage').alt = hero.name;
+                    document.getElementById('lobbyDetailIntro').textContent = lobbyHeroIntros[heroId] || '身懷絕技的亂世英雄，等待你的號令。';
+                    document.getElementById('lobbyDetailForce').textContent = hero.force ?? 0;
+                    document.getElementById('lobbyDetailCulture').textContent = hero.culture ?? 0;
+                    document.getElementById('lobbyDetailCommand').textContent = hero.command ?? 0;
+                    document.getElementById('lobbyDetailPassiveName').textContent = hero.passive?.name || '無';
+                    document.getElementById('lobbyDetailPassiveDesc').innerHTML = hero.passive?.desc || '';
+                    const activeSkill = hero.skills?.[0];
+                    document.getElementById('lobbyDetailActiveName').textContent = activeSkill?.name || '無';
+                    document.getElementById('lobbyDetailActiveDesc').innerHTML = activeSkill?.desc || '';
+                } catch (error) {
+                    if (lobbyMessage) lobbyMessage.textContent = '角色資料讀取失敗';
+                }
+            }
+
+            function renderLobbyCharacterGrid() {
+                if (!lobbyCharacterGrid) return;
+                lobbyCharacterGrid.innerHTML = '';
+                lobbyHeroes.forEach(hero => {
+                    const card = document.createElement('button');
+                    card.type = 'button';
+                    card.className = `lobby-character-card ${hero.id === draftLobbyHeroId ? 'selected' : ''}`;
+                    card.dataset.heroId = hero.id;
+                    card.innerHTML = `
+                        <img src="${hero.avatar}" alt="${hero.name}">
+                        <span class="lobby-character-faction ${hero.faction}">${lobbyFactionLabels[hero.faction] || '將'}</span>
+                        <strong>${hero.name}</strong>
+                    `;
+                    card.addEventListener('click', () => renderLobbyHeroDetail(hero.id));
+                    lobbyCharacterGrid.appendChild(card);
+                });
+            }
+
+            function openLobbyCharacterSelect(heroId = selectedLobbyHeroId) {
+                draftLobbyHeroId = heroId;
+                renderLobbyCharacterGrid();
+                renderLobbyHeroDetail(heroId);
+                if (lobbyCharacterScreen) lobbyCharacterScreen.classList.remove('hidden');
+            }
+
+            if (openLobbyHeroSelect) {
+                openLobbyHeroSelect.addEventListener('click', () => openLobbyCharacterSelect());
+            }
+            if (closeLobbyHeroSelect) {
+                closeLobbyHeroSelect.addEventListener('click', () => {
+                    if (lobbyCharacterScreen) lobbyCharacterScreen.classList.add('hidden');
+                    draftLobbyHeroId = selectedLobbyHeroId;
+                });
+            }
+            if (confirmLobbyHeroSelect) {
+                confirmLobbyHeroSelect.addEventListener('click', () => {
+                    setLobbyMainHero(draftLobbyHeroId);
+                    if (lobbyCharacterScreen) lobbyCharacterScreen.classList.add('hidden');
+                });
+            }
+            renderLobbyCharacterGrid();
+            renderLobbyHeroDetail(selectedLobbyHeroId);
+
+            document.getElementById('endTurnButton').addEventListener('click', endNetworkTurn);
+            const logInput = document.querySelector('.log-input');
+            const sendButton = document.querySelector('.btn-send');
+            if (sendButton) sendButton.addEventListener('click', sendGameLogMessage);
+            if (logInput) {
+                logInput.addEventListener('keydown', event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        sendGameLogMessage();
+                    }
+                });
+            }
+            window.addEventListener('pagehide', reportLeaveGame);
+
+            document.getElementById('createRoomBtn').addEventListener('click', async () => {
+                lobbyMessage.textContent = '正在建立房間…';
+                try {
+                    const result = await networkRequest('/api/rooms', { method: 'POST', body: JSON.stringify({ name: playerNameInput.value }) });
+                    enterNetworkRoom(result);
+                } catch (error) { lobbyMessage.textContent = error.message; }
+            });
+
+            document.getElementById('joinRoomBtn').addEventListener('click', async () => {
+                const code = roomCodeInput.value.trim().toUpperCase();
+                if (!code) { lobbyMessage.textContent = '請輸入房間碼'; return; }
+                lobbyMessage.textContent = '正在加入房間…';
+                try {
+                    const result = await networkRequest(`/api/rooms/${code}/join`, { method: 'POST', body: JSON.stringify({ name: playerNameInput.value }) });
+                    enterNetworkRoom(result);
+                } catch (error) { lobbyMessage.textContent = error.message; }
+            });
+        });
+
+        // 測試用英雄清單：如果之後要做快速切換英雄，可以用這組資料。
+        const testHeroes = ['Cao-Cao', 'Guan-Yu', 'Guo-Jia', 'Han-Xin', 'Xiang-Yu', 'Zhuge-Liang'];
+        let currentHeroIndex = 0;
+
+        // currentHero / currentHeroId 代表目前玩家正式遊玩的角色。
+        let currentHero = null;
+        let currentHeroId = null;
+
+        // 2. 向後端請求英雄資訊並渲染到畫面上。
+        // 選角頁點英雄、進入遊戲後更新左上角角色資料
+        function selectHero(heroId) {
+            return fetch(`${NETWORK_API}/api/hero/${heroId}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const hero = result.data;
+                        
+                        currentHero = hero;
+                        currentHeroId = heroId;
+
+                        // 更新頭像圖片路徑
+                        const avatarImg = document.querySelector('.avatar-img');
+                        if (avatarImg) avatarImg.src = hero.avatar;
+                        const orderAvatar = document.querySelector('.order-avatar.active img');
+                        if (orderAvatar) orderAvatar.src = hero.avatar;
+                        
+                        // 更新英雄名字
+                        const charName = document.querySelector('.char-name');
+                        if (charName) charName.textContent = hero.name;
+                        
+                        // 更新各項屬性數值
+                        if (document.querySelector('.value-force')) document.querySelector('.value-force').textContent = hero.force;
+                        if (document.querySelector('.value-culture')) document.querySelector('.value-culture').textContent = hero.culture;
+                        if (document.querySelector('.value-score')) document.querySelector('.value-score').textContent = hero.score || 0;
+
+                        // 動態更新被動技能
+                        if (hero.passive) {
+                            const pName = document.querySelector('.passive-name');
+                            const pDesc = document.querySelector('.passive-desc');
+                            if (pName) pName.textContent = hero.passive.name;
+                            if (pDesc) pDesc.innerHTML = hero.passive.desc; // 使用 innerHTML 支援後端的 <br> 換行
+                        }
+
+                        // 動態更新主動技能
+                        if (hero.skills && hero.skills.length > 0) {
+                            const activeSkill = hero.skills[0];
+                            
+                            const sName = document.querySelector('.active-name');
+                            const sCast = document.querySelector('.active-cast');
+                            const sDesc = document.querySelector('.active-desc');
+                            
+                            if (sName) sName.textContent = activeSkill.name;
+                            if (sCast) sCast.textContent = activeSkill.cast;
+                            if (sDesc) sDesc.innerHTML = activeSkill.desc; // 使用 innerHTML 支援後端的 <br> 換行
+                        }
+
+                        console.log(`成功從後端讀取並切換英雄為: ${hero.name}`);
+                        return hero;
+                    }
+                    return null;
+                })
+                .catch(error => {
+                    console.error("無法連線至 Node.js 後端伺服器:", error);
+                    return null;
+                });
+        }
+
+        // -------------------------------------------------------------------
+        // 城池資訊面板暫存資料
+        // -------------------------------------------------------------------
+        // 用來暫存當前玩家在右側面板看到的城池代號。
+        let selectedCityId = null; 
+        // 用來暫存當前城池的防禦值，方便攻城或升級時讀取。
+        let selectedCityDefense = 0;
+        // 攻下城池後會得到的積分。
+        let selectedCityPoints = 0;
+        // 城池目前顯示的駐守英雄名稱。
+        let selectedCityOwner = "無";
+        // 多人模式真正判斷城池歸屬用：1 代表玩家一，2 代表玩家二。
+        let selectedCityOwnerPlayerNumber = null;
+        // 目前右側面板正在顯示的城池名稱。
+        let selectedCityName = "";
+        // 目前右側面板正在顯示的城池效果代號，例如 defense_plus。
+        let selectedCityEffectId = "";
+
+        // 3. 選取城池：讀取城池資訊並渲染到右側面板。
+        // 多人模式優先用房間同步資料；單機模式才呼叫 /api/city。
+        function selectCity(cityId) {
+            // 記錄目前點擊的城池代號
+            selectedCityId = cityId;
+
+            const cityRequest = multiplayerRoomState && multiplayerRoomState.cities[cityId]
+                ? Promise.resolve({ success: true, data: multiplayerRoomState.cities[cityId] })
+                : fetch(`${NETWORK_API}/api/city/${cityId}`).then(response => response.json());
+
+            cityRequest
+                .then(result => {
+                    if (result.success) {
+                        const city = result.data;
+                        
+                        // 暫存數值供後續攻打按鈕使用
+                        selectedCityDefense = parseInt(city.defense) || 0;
+                        selectedCityPoints = parseInt(city.points) || 0;
+                        selectedCityOwner = city.player || "無";
+                        selectedCityOwnerPlayerNumber = city.ownerPlayerNumber || null;
+                        selectedCityName = city.name;
+                        selectedCityEffectId = city.effectId || "";
+                        const isWaterFlooded = multiplayerRoomState && city.guanYuWaterFloodRound === multiplayerRoomState.round;
+
+                        const attackCostText = document.getElementById('attackCostText');
+                        if (attackCostText) {
+                            attackCostText.textContent = `需要武力：${getAttackCost(selectedCityDefense)}`;
+                        }
+
+                        const upgradeBtn = document.getElementById('cityUpgradeBtn');
+                        const attackBtn = document.getElementById('cityAttackBtn');
+                        // 自己的城顯示「升級防禦」，不是自己的城顯示「前往攻城」。
+                        const isMyCity = networkSession
+                            ? city.ownerPlayerNumber === networkSession.playerNumber
+                            : currentHero && city.player === currentHero.name;
+                        if (upgradeBtn) {
+                            upgradeBtn.style.display = isMyCity ? 'flex' : 'none';
+                        }
+                        if (attackBtn) {
+                            attackBtn.style.display = isMyCity ? 'none' : 'flex';
+                        }
+
+                        // 點擊時，立刻把右側面板顯示出來！
+                        const panel = document.getElementById('cityInfoPanel');
+                        if (panel) {
+                            panel.style.display = 'block'; // 從 none 改成 block，面板就會現形了
+                        }
+
+                        // 抓取網頁元素
+                        const cName = document.querySelector('.city-name-target');
+                        const cDefense = document.querySelector('.city-defense');
+                        const cPoints = document.querySelector('.city-points');
+                        const cEffect = document.querySelector('.city-effect');
+                        const cPlayer = document.querySelector('.city-player');
+                        
+                        // 替換後端傳來的數值
+                        if (cName) cName.textContent = city.name;
+                        if (cDefense) cDefense.textContent = city.defense;
+                        if (cPoints) cPoints.textContent = city.points;
+                        
+                        // 替換詳細資訊
+                        if (cEffect) {
+                            cEffect.textContent = `${city.effect || '無'}${isWaterFlooded ? '｜水淹七軍：本回合攻城消耗-1' : ''}`;
+                            
+                            if (!isWaterFlooded && (city.effect === "無" || city.effect === "")) {
+                                cEffect.classList.add('empty');
+                                cEffect.style.color = "#4a5568"; // 「無」的時候變回暗灰色
+                            } else {
+                                cEffect.classList.remove('empty'); 
+                                cEffect.style.color = "rgba(255, 255, 255, 0.9)"; // 有效果時，強制變回亮白色！
+                            }
+                        }
+                        
+                        if (cPlayer) {
+                            cPlayer.textContent = city.player;
+                            
+                            if (city.player === "無" || city.player === "") {
+                                cPlayer.classList.add('empty');
+                                cPlayer.style.color = "#4a5568"; // 「無」的時候變回暗灰色
+                            } else {
+                                cPlayer.classList.remove('empty'); 
+                                cPlayer.style.color = "rgba(255, 255, 255, 0.9)"; // 有駐守玩家時，強制變回亮白色！
+                            }
+                        }
+
+                        console.log(`右側面板成功同步為城池：${city.name}`);
+                    }
+                })
+
+                .catch(error => {
+                    console.error("無法連線至後端獲取城池資訊:", error);
+                });
+
+        }
+
+        // 對手回合時提示玩家目前不能做攻城、升級、防禦等會改狀態的操作。
+        function showTurnActionNotice(actionName) {
+            const status = document.getElementById('endTurnStatus');
+            if (status) status.textContent = `對手回合，不能${actionName}`;
+            setTimeout(() => {
+                if (multiplayerRoomState) applyRoomState(multiplayerRoomState);
+            }, 1400);
+        }
+
+        function getAttackCost(selectedCityDefense) {
+            if (multiplayerRoomState && currentXiangyuAllInRound === multiplayerRoomState.round) {
+                return 2;
+            }
+
+            let cost = selectedCityDefense;
+
+            if (multiplayerRoomState && networkSession) {
+                const hasBeiping = Object.values(multiplayerRoomState.cities).some(city =>
+                    city.effectId === "attackcost_minus" &&
+                    city.ownerPlayerNumber === networkSession.playerNumber
+                );
+
+                if (hasBeiping) {
+                    cost -= 1;
+                }
+            }
+
+            if (currentYixingStatus === 'zhan') {
+                cost -= 1;
+            }
+
+            if (isSelectedCityWaterFlooded()) {
+                cost -= 1;
+            }
+
+            const hanxinTactics = Array.isArray(currentHanxinAmbushTactic)
+                ? currentHanxinAmbushTactic
+                : currentHanxinAmbushTactic ? [currentHanxinAmbushTactic] : [];
+            if (hanxinTactics.length > 0) {
+                cost -= hanxinTactics.filter(tactic => tactic.effect === 'cost_minus').length;
+            }
+
+            return Math.max(1, cost);
+        }
+
+        function isSelectedCityWaterFlooded() {
+            if (!multiplayerRoomState || !selectedCityId) return false;
+            const city = multiplayerRoomState.cities[selectedCityId];
+            return !!city && city.guanYuWaterFloodRound === multiplayerRoomState.round;
+        }
+
+        function canClaimGuanYuWaterFloodReward() {
+            if (!multiplayerRoomState || !selectedCityId) return false;
+            const city = multiplayerRoomState.cities[selectedCityId];
+            return !!city &&
+                city.guanYuWaterFloodRound === multiplayerRoomState.round &&
+                !city.guanYuWaterFloodClaimed;
+        }
+
+        function resolveGuanYuRewardChoice(choice) {
+            const screen = document.getElementById('guanyuRewardScreen');
+            if (!pendingGuanYuRewardAttack) {
+                if (screen) screen.classList.add('hidden');
+                return;
+            }
+            pendingGuanYuRewardAttack = false;
+            if (screen) screen.classList.add('hidden');
+            executeAttack(choice);
+        }
+        window.resolveGuanYuRewardChoice = resolveGuanYuRewardChoice;
+
+        // 4. 攻城流程：
+        // 檢查回合 -> 檢查是否選城 -> 檢查是否攻打自己的城 -> 比對武力 -> 成功後同步後端。
+        function executeAttack(guanYuFloodReward = null) {
+            if (networkSession && !isLocalPlayersTurn) {
+                showTurnActionNotice('攻城');
+                return;
+            }
+            if (!selectedCityId) {
+                alert("請先在地圖上選擇一座城池！");
+                return;
+            }
+
+            // 1. 獲取當前玩家（英雄）的名字與總武力值
+            const forceEl = document.querySelector('.value-force');
+            const scoreEl = document.querySelector('.value-score');
+            const playerForce = forceEl ? parseInt(forceEl.innerText) : (currentHero ? currentHero.force : 0);
+            const attackerName = currentHero ? currentHero.name : "未知英雄";
+
+            // 多人模式用玩家編號判斷是不是自己的城；單機模式用英雄名判斷。
+            const isAttackingOwnCity = networkSession
+                ? selectedCityOwnerPlayerNumber === networkSession.playerNumber
+                : selectedCityOwner === attackerName;
+            if (isAttackingOwnCity) {
+                alert(`【${selectedCityName}】已經是你的城池，不能重複攻城取得積分。`);
+                return;
+            }
+
+            console.log(`【決戰攻城】目標：${selectedCityName} | 需要武力：${selectedCityDefense} | 當前武力：${playerForce}`);
+
+            // 2. ⚔️ 核心比對：玩家點按鈕時，武力值有沒有達標？
+            const attackCost = getAttackCost(selectedCityDefense)
+            if (playerForce >= attackCost) {
+                if (networkSession && canClaimGuanYuWaterFloodReward() && !guanYuFloodReward) {
+                    pendingGuanYuRewardAttack = true;
+                    const rewardScreen = document.getElementById('guanyuRewardScreen');
+                    const rewardText = document.getElementById('guanyuRewardText');
+                    const rewardMessage = document.getElementById('guanyuRewardMessage');
+                    if (rewardText) rewardText.textContent = `你將率先攻下【${selectedCityName}】，選擇一項水淹七軍獎勵。`;
+                    if (rewardMessage) rewardMessage.textContent = '';
+                    if (rewardScreen) rewardScreen.classList.remove('hidden');
+                    return;
+                }
+                // 🟢 攻打成功！
+                // 出現升級按鈕
+                const upgradeBtn = document.getElementById('cityUpgradeBtn');
+                if (upgradeBtn) {
+                    upgradeBtn.style.display = 'flex';
+                }
+                const attackBtn = document.getElementById('cityAttackBtn');
+                if (attackBtn) {
+                    attackBtn.style.display = 'none';
+                }
+
+                forceEl.textContent = playerForce - attackCost;
+                if (scoreEl) {
+                    const currentScore = parseInt(scoreEl.innerText) || 0;
+                    const visualScoreGain = currentYixingStatus === 'zhan'
+                        ? Math.ceil(selectedCityPoints / 2)
+                        : selectedCityPoints;
+                    const cityPointsEl = document.querySelector('.city-points');
+                    animateScoreGain(visualScoreGain, cityPointsEl, scoreEl, () => {
+                        scoreEl.textContent = currentScore + visualScoreGain;
+                    });
+                }
+                selectedCityOwner = attackerName;
+                selectedCityOwnerPlayerNumber = networkSession?.playerNumber || null;
+
+                const avatarImg = document.getElementById(`avatar-${selectedCityId}`);
+                if (avatarImg && currentHero) {
+                    avatarImg.src = currentHero.avatar;
+                    avatarImg.style.display = "block";
+                }
+
+                // 城池效果：如果攻下的是成都，成都防禦+2
+                if (selectedCityEffectId === "defense_plus") {
+                    selectedCityDefense += 2;
+
+                    const cDefense = document.querySelector('.city-defense');
+                    if (cDefense) cDefense.textContent = selectedCityDefense;
+
+                    const attackCostText = document.getElementById('attackCostText');
+                    if (attackCostText) {
+                        attackCostText.textContent = `需要武力：${getAttackCost(selectedCityDefense)}`;
+                    }
+
+                    const cityEl = document.getElementById(`castle-${selectedCityId}`);
+                    const nodeStats = cityEl ? cityEl.querySelector('.node-stats') : null;
+                    if (nodeStats) {
+                        nodeStats.textContent = `${selectedCityDefense}/${selectedCityPoints}`;
+                    }
+                }
+
+                // 4. 更新右側資訊面板上的駐守玩家文字
+                const cPlayer = document.querySelector('.city-player');
+                if (cPlayer) {
+                    cPlayer.textContent = attackerName;
+                    cPlayer.style.color = "#ffffff";
+                    cPlayer.classList.remove('empty');
+                }
+
+                // 5. 讓地圖上的城池外框亮起金光
+                const cityEl = document.getElementById(`castle-${selectedCityId}`);
+                if (cityEl) {
+                    const boxEl = cityEl.querySelector('.city-node-box');
+                    if (boxEl) {
+                        boxEl.style.borderColor = "#ffd700";
+                        boxEl.style.boxShadow = "0 0 10px rgba(255, 215, 0, 0.5)";
+                    }
+                }
+
+                // 把成功佔領的資訊 POST 給後端；多人模式會回傳完整房間狀態。
+                fetch(networkSession ? `${NETWORK_API}/api/rooms/${networkSession.code}/city/${selectedCityId}` : `${NETWORK_API}/api/city/${selectedCityId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        player: attackerName, 
+                        playerId: networkSession?.playerId, 
+                        action: 'attack', 
+                        forceCost: attackCost,
+                        guanYuFloodReward
+                    })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    console.log("城池佔領狀態已更新：", result);
+                    if (result.success && result.room) {
+                        applyRoomState(result.room);
+                    } else if (result.success) {
+                        appendLocalLog(`${attackerName} 攻下了 ${selectedCityName}，獲得 ${selectedCityPoints} 積分`);
+                    }
+                });
+
+            } else {
+                // ❌ 武力不足，攻打失敗
+                const panel = document.getElementById('cityInfoPanel');
+                const attackBtn = document.getElementById('cityAttackBtn');
+                const attackBtnText = attackBtn ? attackBtn.querySelector('.btn-text') : null;
+                const attackCostText = document.getElementById('attackCostText');
+
+                if (panel) {
+                    panel.classList.remove('city-attack-failed-shake');
+                    void panel.offsetWidth;
+                    panel.classList.add('city-attack-failed-shake');
+                }
+
+                if (attackBtn) {
+                    attackBtn.classList.add('btn-attack-failed');
+                    attackBtn.style.pointerEvents = 'none';
+                }
+                if (attackBtnText) attackBtnText.textContent = '攻城失敗';
+                if (attackCostText) attackCostText.textContent = '武力不足';
+
+                setTimeout(() => {
+                    if (panel) panel.classList.remove('city-attack-failed-shake');
+                    if (attackBtn) {
+                        attackBtn.classList.remove('btn-attack-failed');
+                        attackBtn.style.pointerEvents = 'auto';
+                    }
+                    if (attackBtnText) attackBtnText.textContent = '前往攻城';
+                    if (attackCostText) attackCostText.textContent = `需要武力：${getAttackCost(selectedCityDefense)}`;
+                }, 3000);
+            }
+        }
+
+        // 5. 升級防禦流程：
+        // 檢查回合 -> 檢查是否選城 -> 檢查文化是否足夠 -> 扣文化並提高城防 -> 同步後端。
+        function executeUpgradeDefense() {
+            if (networkSession && !isLocalPlayersTurn) {
+                showTurnActionNotice('升級防禦');
+                return;
+            }
+            if (!selectedCityId) {
+                alert("請先在地圖上選擇一座城池！");
+                return;
+            }
+
+            const cultureEl = document.querySelector('.value-culture');
+            const playerCulture = cultureEl ? parseInt(cultureEl.innerText) || 0 : 0;
+            const upgradeBtn = document.getElementById('cityUpgradeBtn');
+            const cityDefenseEl = document.querySelector('.city-defense');
+
+            if (playerCulture < 2) {
+                showCityActionFailed(upgradeBtn, '升級失敗', '文化不足', '升級防禦', '消耗文化：2');
+                return;
+            }
+
+            selectedCityDefense += 1;
+            cultureEl.textContent = playerCulture - 2;
+            cultureEl.classList.remove('culture-spend-pulse');
+            void cultureEl.offsetWidth;
+            cultureEl.classList.add('culture-spend-pulse');
+
+            if (cityDefenseEl) {
+                cityDefenseEl.textContent = selectedCityDefense;
+            }
+
+            // 文化化為城防：光點由左上文化欄飛向右側城池防禦數值。
+            animateResourceGain(1, cultureEl, cityDefenseEl, 'culture');
+
+            const attackCostText = document.getElementById('attackCostText');
+            if (attackCostText) {
+                attackCostText.textContent = `需要武力：${getAttackCost(selectedCityDefense)}`;
+            }
+
+            const cityEl = document.getElementById(`castle-${selectedCityId}`);
+            if (cityEl) {
+                const nodeStats = cityEl.querySelector('.node-stats');
+                if (nodeStats) {
+                    nodeStats.textContent = `${selectedCityDefense}/${selectedCityPoints}`;
+                }
+            }
+
+            if (upgradeBtn) {
+                upgradeBtn.classList.add('btn-upgrade-success');
+                setTimeout(() => {
+                    upgradeBtn.classList.remove('btn-upgrade-success');
+                }, 700);
+            }
+
+            fetch(networkSession ? `${NETWORK_API}/api/rooms/${networkSession.code}/city/${selectedCityId}` : `${NETWORK_API}/api/city/${selectedCityId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ defense: selectedCityDefense, playerId: networkSession?.playerId, action: 'upgrade' })
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log("城池防禦已升級：", result);
+                if (result.success && result.room) {
+                    applyRoomState(result.room);
+                } else if (result.success) {
+                    appendLocalLog(`${currentHero ? currentHero.name : '玩家'} 升級了 ${selectedCityName} 的防禦，城防提升到 ${selectedCityDefense}`);
+                }
+            });
+        }
+
+        // 攻城或升級失敗時，讓面板震動、按鈕變紅，幾秒後恢復正常。
+        function showCityActionFailed(actionBtn, failedText, failedCostText, normalText, normalCostText) {
+            const panel = document.getElementById('cityInfoPanel');
+            const btnText = actionBtn ? actionBtn.querySelector('.btn-text') : null;
+            const btnCost = actionBtn ? actionBtn.querySelector('.btn-cost') : null;
+
+            if (panel) {
+                panel.classList.remove('city-attack-failed-shake');
+                void panel.offsetWidth;
+                panel.classList.add('city-attack-failed-shake');
+            }
+
+            if (actionBtn) {
+                actionBtn.classList.add('btn-action-failed');
+                actionBtn.style.pointerEvents = 'none';
+            }
+            if (btnText) btnText.textContent = failedText;
+            if (btnCost) btnCost.textContent = failedCostText;
+
+            setTimeout(() => {
+                if (panel) panel.classList.remove('city-attack-failed-shake');
+                if (actionBtn) {
+                    actionBtn.classList.remove('btn-action-failed');
+                    actionBtn.style.pointerEvents = 'auto';
+                }
+                if (btnText) btnText.textContent = normalText;
+                if (btnCost) btnCost.textContent = normalCostText;
+            }, 3000);
+        }
+
+        // 攻城成功後，讓「+積分」從城池積分位置飛到左上角積分欄。
+        function animateScoreGain(points, fromEl, scoreEl, onComplete) {
+            if (!fromEl || !scoreEl || !points) {
+                if (onComplete) onComplete();
+                return;
+            }
+
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = scoreEl.getBoundingClientRect();
+            const startX = fromRect.left + fromRect.width / 2;
+            const startY = fromRect.top + fromRect.height / 2;
+            const endX = toRect.left + toRect.width / 2;
+            const endY = toRect.top + toRect.height / 2;
+
+            const spark = document.createElement('div');
+            spark.className = 'score-fly-effect';
+            spark.textContent = `+${points}`;
+            spark.style.left = `${startX}px`;
+            spark.style.top = `${startY}px`;
+            document.body.appendChild(spark);
+
+            requestAnimationFrame(() => {
+                spark.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.55)`;
+                spark.style.opacity = '0';
+            });
+
+            setTimeout(() => {
+                spark.remove();
+                if (onComplete) onComplete();
+                scoreEl.classList.remove('score-gain-pop');
+                void scoreEl.offsetWidth;
+                scoreEl.classList.add('score-gain-pop');
+            }, 750);
+        }
+
+        // 通用資源飛行特效。
+        // 例如：升級防禦時，文化光點從文化欄飛到城池防禦數值。
+        function animateResourceGain(amount, fromEl, targetEl, type, onComplete, delay = 0) {
+            if (!fromEl || !targetEl || !amount) {
+                if (onComplete) onComplete();
+                return;
+            }
+
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = targetEl.getBoundingClientRect();
+            const startX = fromRect.left + fromRect.width / 2;
+            const startY = fromRect.top + fromRect.height / 2;
+            const endX = toRect.left + toRect.width / 2;
+            const endY = toRect.top + toRect.height / 2;
+
+            setTimeout(() => {
+                const spark = document.createElement('div');
+                spark.className = `resource-fly-effect resource-${type}`;
+                spark.textContent = `+${amount}`;
+                spark.style.left = `${startX}px`;
+                spark.style.top = `${startY}px`;
+                document.body.appendChild(spark);
+
+                requestAnimationFrame(() => {
+                    spark.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.5)`;
+                    spark.style.opacity = '0';
+                });
+
+                setTimeout(() => {
+                    spark.remove();
+                    if (onComplete) onComplete();
+                    targetEl.classList.remove('stat-gain-pop');
+                    void targetEl.offsetWidth;
+                    targetEl.classList.add('stat-gain-pop');
+                }, 750);
+            }, delay);
+        }
+        
+        // 關閉城池資訊面板：右側城池面板叉叉會呼叫這個函式。
+        function closeCityInfo() {
+            const panel = document.getElementById('cityInfoPanel');
+            if (panel) {
+                panel.style.display = 'none'; // 讓面板直接隱藏
+                console.log("城池資訊面板已關閉");
+            }
+        }
+
+        // -------------------------------------------------------------------
+        // 卡牌與組字資料
+        // -------------------------------------------------------------------
+        // 定義部首字庫：五行部首牌會使用這些資料建立卡牌。
+        const RADICAL_POOL = [
+            { char: "金", typeClass: "element-gold",  imgName: "gold" },
+            { char: "木", typeClass: "element-wood",  imgName: "wood" },
+            { char: "水", typeClass: "element-water", imgName: "water" },
+            { char: "火", typeClass: "element-fire",  imgName: "fire" },
+            { char: "土", typeClass: "element-earth", imgName: "earth" }
+        ];
+
+        // 定義部件字庫：部件牌只有文字，不需要圖片。
+        const COMPONENT_POOL = [
+            { char: "反" },
+            { char: "正" },
+            { char: "兆" },
+            { char: "寸" },
+            { char: "青" }
+        ];
+
+        // 定義組合字庫：key 是「部首+部件」，value 是合成後的新字。
+        // 如果這裡沒有對應公式，就會判定合成失敗。
+        const COMBINATION_FORMULAS = {
+            '木+反': '板',      '木+正': '柾',      '木+兆': '桃',      '木+寸': '村',      '木+青': '棈',
+            '水+反': '汳',      '水+正': '泟',      '水+兆': '洮',      /*'水+寸': '無',*/  '水+青': '清',
+            /*'火+反': '無',*/  '火+正': '炡',      '火+兆': '烑',      /*'火+寸': '無',*/  /*'火+青': '無',*/
+            '金+反': '鈑',      '金+正': '鉦',      '金+兆': '銚',      /*'金+寸': '無',*/  '金+青': '錆',
+            '土+反': '坂',      /*'土+正': '無',*/  '土+兆': '垗',      '土+寸': '寺',      /*'土+青': '無',*/
+        };
+
+        // 追蹤當前玩家選取的卡片物件。
+        // 玩家必須各選 1 張部首牌與 1 張部件牌，才會顯示合成面板。
+        let selectedRadicalCard = null;
+        let selectedComponentCard = null;
+
+        // 隨機從陣列中抽取 N 個不重複元素，用在開局抽牌。
+        function getRandomElements(arr, count) {
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        // 建立一張卡牌的 HTML。
+        // isRadical = true 代表部首牌；false 代表部件牌。
+        function createCardElement(cardData, isRadical = true) {
+            const card = document.createElement('div');
+            
+            if (isRadical) {
+                card.className = 'game-card radical-card'; 
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-img-box">
+                            <img src="images/cards/${cardData.imgName}.jpg" class="card-photo" alt="${cardData.char}">
+                        </div>
+                    </div>
+                `;
+            } else {
+                card.className = 'game-card component-card'; 
+                card.innerHTML = `
+                    <div class="card-inner flex-center">
+                        <div class="card-main-char">${cardData.char}</div>
+                    </div>
+                `;
+            }
+
+            // 幫創建出來的每一張卡片綁定點擊選取事件
+            bindCardClickEvent(card, isRadical);
+
+            return card;
+        }
+
+        // 開局初始化手牌：清空原本手牌後，抽 5 張部首與 5 張部件。
+        function initRandomDecks() {
+            // 透過你目前的 HTML 階層結構，精準定位到內層的卡牌容器
+            const radicalContainer = document.querySelector('.radical-deck .carousel-container .cards-container');
+            const componentContainer = document.querySelector('.component-deck .carousel-container .cards-container');
+            
+            if (!radicalContainer || !componentContainer) return;
+            
+            // 清空容器（移除原本可能殘留的 HTML 標籤）
+            radicalContainer.innerHTML = '';
+            componentContainer.innerHTML = '';
+            
+            // 隨機抽取 5 張部首與 5 張部件
+            const selectedRadicals = getRandomElements(RADICAL_POOL, 5);
+            const selectedComponents = getRandomElements(COMPONENT_POOL, 5);
+            
+            // 動態塞入卡牌（createCardElement 保持你原本完美的五行圖片與米白毛筆字結構）
+            selectedRadicals.forEach(data => {
+                const cardEl = createCardElement(data, true);
+                radicalContainer.prepend(cardEl);
+            });
+            
+            selectedComponents.forEach(data => {
+                const cardEl = createCardElement(data, false);
+                componentContainer.prepend(cardEl);
+            });
+            
+            console.log("《五行字城》隨機開局手牌初始化成功！");
+        }
+            
+        // 為卡牌綁定點擊選取事件。
+        // cardEl = 卡牌元素；isRadical = 是否為部首牌。
+        function bindCardClickEvent(cardEl, isRadical) {
+            cardEl.style.cursor = 'pointer';
+            
+            cardEl.addEventListener('click', () => {
+                if (isRadical) {
+                    // --- 部首牌點擊邏輯 ---
+                    if (selectedRadicalCard === cardEl) {
+                        // 如果點擊已選中的牌，就取消選取
+                        cardEl.classList.remove('selected-card');
+                        selectedRadicalCard = null;
+                    } else {
+                        // 取消前一張部首牌的選取狀態
+                        if (selectedRadicalCard) selectedRadicalCard.classList.remove('selected-card');
+                        // 選取新牌
+                        cardEl.classList.add('selected-card');
+                        selectedRadicalCard = cardEl;
+                    }
+                } else {
+                    // --- 部件牌點擊邏輯 ---
+                    if (selectedComponentCard === cardEl) {
+                        cardEl.classList.remove('selected-card');
+                        selectedComponentCard = null;
+                    } else {
+                        if (selectedComponentCard) selectedComponentCard.classList.remove('selected-card');
+                        cardEl.classList.add('selected-card');
+                        selectedComponentCard = cardEl;
+                    }
+                }
+
+                // 動態更新下方中央的融合預覽面板
+                updateFusionPreview();
+            });
+        }
+
+        // 更新下方中央的融合面板。
+        // 只要同時選到 1 張部首 + 1 張部件，就把兩張牌複製到融合框中預覽。
+        function updateFusionPreview() {
+            const panel = document.getElementById('fusionCraftPanel');
+            const slotRadical = document.getElementById('fusionSlotRadical');
+            const slotComponent = document.getElementById('fusionSlotComponent');
+
+            // 只要其中有一張被取消選取，就隱藏儀式面板
+            if (!selectedRadicalCard || !selectedComponentCard) {
+                panel.style.display = 'none';
+                slotRadical.innerHTML = '';
+                slotComponent.innerHTML = '';
+                return;
+            }
+
+            // 🌟 集齊兩張，將手牌複製一份（Clone）放大展示到中央插槽
+            slotRadical.innerHTML = '';
+            slotComponent.innerHTML = '';
+
+            const cloneRadical = selectedRadicalCard.cloneNode(true);
+            const cloneComponent = selectedComponentCard.cloneNode(true);
+
+            // 清除選取專用樣式避免發光錯亂，保持乾淨卡面
+            cloneRadical.classList.remove('selected-card');
+            cloneComponent.classList.remove('selected-card');
+
+            slotRadical.appendChild(cloneRadical);
+            slotComponent.appendChild(cloneComponent);
+
+            // 展現面板
+            panel.style.display = 'flex';
+        }
+
+        function getFusionReward() {
+            let reward = {
+                force: 2,
+                culture: 1
+            };
+
+            if (multiplayerRoomState && networkSession) {
+                const forceplus = Object.values(multiplayerRoomState.cities).some(city =>
+                    city.effectId === "force_plus" &&
+                    city.ownerPlayerNumber === networkSession.playerNumber
+                );
+
+                if (forceplus) {
+                    reward.force += 1;
+                }
+            }
+
+            return reward;
+        }
+
+        // 執行卡牌合成：
+        // 檢查回合 -> 讀取兩張牌文字 -> 查公式 -> 成功給資源並產生合成字卡。
+        function executeFusionCraft() {
+            if (networkSession && !isLocalPlayersTurn) {
+                showTurnActionNotice('合成卡牌');
+                return;
+            }
+            if (!selectedRadicalCard || !selectedComponentCard) return;
+
+            // 宣告抓取面板，用面板去抓取內部的按鈕
+            const panel = document.getElementById('fusionCraftPanel');
+            const actionBtn = panel ? panel.querySelector('.fusion-action-btn') : null;
+
+            // 1. 【精密抓取部首文字】
+            const imgEl = selectedRadicalCard.querySelector('img');
+            let radicalChar = "";
+
+            if (imgEl) {
+                radicalChar = imgEl.getAttribute('alt') || "";
+            }
+            
+            // 💡 防呆機制：如果 alt 剛好抓到字串 "undefined" 或空白，從圖片路徑或卡片特徵進行比對還原
+            if (!radicalChar || radicalChar === "undefined") {
+                const imgSrc = imgEl ? imgEl.getAttribute('src') : "";
+                if (imgSrc.includes('wood')) radicalChar = '木';
+                else if (imgSrc.includes('water')) radicalChar = '水';
+                else if (imgSrc.includes('fire')) radicalChar = '火';
+                else if (imgSrc.includes('gold')) radicalChar = '金';
+                else if (imgSrc.includes('earth')) radicalChar = '土';
+            }
+            
+            // 2. 【精密抓取部件文字】
+            const charEl = selectedComponentCard.querySelector('.card-main-char');
+            const componentChar = charEl ? charEl.innerText.trim() : '';
+            
+            // 如果真的不幸還是沒抓到，在 console 提示
+            if (!radicalChar || !componentChar) {
+                console.error("無法讀取選中卡牌的文字！", { radicalChar, componentChar });
+                return;
+            }
+            
+            // 3. 【比對字庫公式】
+            const key = `${radicalChar}+${componentChar}`;
+            // 優先從公式庫撈字，若公式沒對到，再用防呆合併
+            const newChar = COMBINATION_FORMULAS[key];
+
+            if (!newChar) {
+                console.log(`【鍛造失敗】字庫中沒有 [${key}] 這個組合！`);
+                
+                if (panel && actionBtn) {
+                    // 1. 讓框框劇烈震動，並加上失敗紅外框 class
+                    panel.classList.add('fusion-shake-error');
+                    
+                    // 2. 讓融合按鈕外觀變紅，並把文字改成「合成失敗！」
+                    actionBtn.classList.add('btn-error');
+                    actionBtn.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 合成失敗！`;
+                    
+                    // 3. 鎖定按鈕點擊，防止在動畫期間被瘋狂重覆連點
+                    actionBtn.style.pointerEvents = 'none';
+
+                    // 4. 延遲 0.5 秒後，清除錯誤特效、解除選取、收回面板，讓玩家重新操作
+                    setTimeout(() => {
+                        // 移除特效類名與恢復按鈕文字
+                        panel.classList.remove('fusion-shake-error');
+                        actionBtn.classList.remove('btn-error');
+                        actionBtn.innerHTML = `<i class="fa-solid fa-fire-burner"></i> 熔煉融合`;
+                        actionBtn.style.pointerEvents = 'auto'; // 重新開啟點擊
+
+                        // 解除原本手牌的選取狀態
+                        if (selectedRadicalCard) selectedRadicalCard.classList.remove('selected-card');
+                        if (selectedComponentCard) selectedComponentCard.classList.remove('selected-card');
+                        
+                        // 清空變數並關閉面板
+                        selectedRadicalCard = null;
+                        selectedComponentCard = null;
+                        updateFusionPreview(); 
+                    }, 500);
+                    return;
+                }
+            }
+
+            console.log(`正在熔煉公式：[${key}] -> 預計生成：【${newChar}】`);
+
+            // 1. 抓取畫面上現有的武力與文化值元素
+            const forceEl = document.querySelector('.value-force');
+            const cultureEl = document.querySelector('.value-culture');
+            const fusionSourceEl = actionBtn || panel;
+            const fusionReward = getFusionReward();
+            const visualFusionReward = {
+                ...fusionReward,
+                culture: fusionReward.culture + (currentYixingStatus === 'zhong' ? 1 : 0)
+            };
+            if (multiplayerRoomState && currentCaocaoTuntianDoubleLeft > 0) {
+                visualFusionReward.force *= 2;
+                visualFusionReward.culture *= 2;
+            }
+            if (multiplayerRoomState && currentXiangyuAllInRound === multiplayerRoomState.round) {
+                visualFusionReward.force = 0;
+                visualFusionReward.culture = 0;
+            }
+            const localPlayer = multiplayerRoomState && networkSession
+                ? multiplayerRoomState.players[(multiplayerRoomState.yourPlayerNumber || 1) - 1]
+                : null;
+            const shouldStoreAmbush = localPlayer && localPlayer.passiveId === 'hanxin_ambush';
+
+            if (shouldStoreAmbush) {
+                showHanxinFusionChoice({
+                    newChar,
+                    reward: fusionReward,
+                    visualReward: visualFusionReward,
+                    element: RADICAL_TO_ELEMENT[radicalChar] || null,
+                    sourceEl: fusionSourceEl,
+                    panel,
+                    radicalCard: selectedRadicalCard,
+                    componentCard: selectedComponentCard
+                });
+                return;
+            }
+
+            const minshengPreserveKey = multiplayerRoomState
+                ? `${multiplayerRoomState.round}:fusion`
+                : '';
+            if (currentZhugeStrategy === 'minsheng' && lastMinshengPreserveKey !== minshengPreserveKey) {
+                lastMinshengPreserveKey = minshengPreserveKey;
+                showMinshengChoice({
+                    newChar,
+                    reward: fusionReward,
+                    visualReward: visualFusionReward,
+                    element: RADICAL_TO_ELEMENT[radicalChar] || null,
+                    sourceEl: fusionSourceEl,
+                    panel,
+                    radicalCard: selectedRadicalCard,
+                    componentCard: selectedComponentCard
+                });
+                return;
+            }
+
+            if (forceEl) {
+                let currentForce = parseInt(forceEl.innerText) || 0;
+                animateResourceGain(visualFusionReward.force, fusionSourceEl, forceEl, 'force', () => {
+                    forceEl.innerText = currentForce + visualFusionReward.force;
+                }, 120);
+            }
+
+            if (cultureEl) {
+                let currentCulture = parseInt(cultureEl.innerText) || 0;
+                animateResourceGain(visualFusionReward.culture, fusionSourceEl, cultureEl, 'culture', () => {
+                    cultureEl.innerText = currentCulture + visualFusionReward.culture;
+                }, 120);
+            }
+
+            if (networkSession) {
+                networkRequest(`/api/rooms/${networkSession.code}/resource`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        playerId: networkSession.playerId,
+                        force: fusionReward.force,
+                        culture: fusionReward.culture,
+                        reason: 'fusion',
+                        word: newChar,
+                        element: RADICAL_TO_ELEMENT[radicalChar] || null
+                    })
+                })
+                .then(result => {
+                    applyRoomState(result.room);
+                    if (result.zhugeBeifaTriggered) {
+                        showZhugeBeifaRewardChoice();
+                    }
+                    const zhugeFusionDrawKey = `${result.room.round}:fusion`;
+                    if (currentZhugeStrategy === 'junlue' && lastZhugeFusionDrawKey !== zhugeFusionDrawKey) {
+                        lastZhugeFusionDrawKey = zhugeFusionDrawKey;
+                        drawExtraComponentCard('隆中對・軍略 第一次組字後額外抽到部件牌');
+                    }
+                })
+            }
+
+            // 成功融合，發出資源光效後將面板藏起來
+            if (panel) panel.style.display = 'none';
+
+            // 4. 讓兩張手牌在原處變小消失
+            selectedRadicalCard.style.transform = 'scale(0)';
+            selectedRadicalCard.style.opacity = '0';
+            selectedRadicalCard.style.transition = 'all 0.3s ease';
+            
+            selectedComponentCard.style.transform = 'scale(0)';
+            selectedComponentCard.style.opacity = '0';
+            selectedComponentCard.style.transition = 'all 0.3s ease';
+
+            const cardToDel1 = selectedRadicalCard;
+            const cardToDel2 = selectedComponentCard;
+
+            // 清空全域選取狀態
+            selectedRadicalCard = null;
+            selectedComponentCard = null;
+
+            setTimeout(() => {
+                cardToDel1.remove();
+                cardToDel2.remove();
+
+                // 定位到組字區容器
+                const zoneEl = document.querySelector('.composition-zone-deck');
+                if (!zoneEl) return;
+                const compZone = zoneEl.querySelector('.composition-zone-deck .cards-container') || zoneEl;
+                
+                // 5. 建立全新的動態合成字卡
+                const newWordCard = document.createElement('div');
+                newWordCard.className = "game-card component-card combined-word-card";
+                newWordCard.innerHTML = `
+                    <div class="card-inner flex-center">
+                        <div class="card-main-char">${newChar}</div>
+                        <div class="card-tag">已合成</div>
+                    </div>
+                `;
+
+                // 6. 完美放入組字大鼎中（塞在加號框前面）
+                if (compZone.firstChild) {
+                    // 如果裡面已經有任何卡片或加號框，直接插到第一個節點之前
+                    compZone.insertBefore(newWordCard, compZone.firstChild);
+                } else {
+                    // 如果是空的，則直接放入
+                    compZone.appendChild(newWordCard);
+                }
+
+                console.log(`【合成成功】:${radicalChar} + ${componentChar} ➜ 【${newChar}】已成功送入組字區！`);
+            }, 300);
+        }
+
+        // 每次輪到自己時呼叫：新增 1 張部首牌與 1 張部件牌到手牌區。
+        function drawExtraComponentCard(reasonText = '額外獲得部件牌') {
+            const componentContainer = document.querySelector('.component-deck .carousel-container .cards-container');
+            if (!componentContainer) return;
+            const componentPool = ['反', '正', '兆', '寸', '青'];
+            const randomComponent = componentPool[Math.floor(Math.random() * componentPool.length)];
+            const componentCard = document.createElement('div');
+            componentCard.className = 'game-card component-card';
+            componentCard.innerHTML = `
+                <div class="card-inner flex-center">
+                    <div class="card-main-char">${randomComponent}</div>
+                </div>
+            `;
+            bindCardClickEvent(componentCard, false);
+            componentContainer.prepend(componentCard);
+            appendLocalLog(`系統｜${reasonText}【${randomComponent}】`);
+        }
+
+        function showTianjiDrawChoice() {
+            const radicalOptions = getRandomElements(RADICAL_POOL, 2);
+            const componentOptions = getRandomElements(COMPONENT_POOL, 2);
+            pendingTianjiDraw = {
+                radicalOptions,
+                componentOptions,
+                selectedRadicalIndex: null,
+                selectedComponentIndex: null
+            };
+
+            const screen = document.getElementById('tianjiChoiceScreen');
+            const radicalBox = document.getElementById('tianjiRadicalOptions');
+            const componentBox = document.getElementById('tianjiComponentOptions');
+            const message = document.getElementById('tianjiChoiceMessage');
+            if (message) message.textContent = '';
+
+            if (radicalBox) {
+                radicalBox.innerHTML = '';
+                radicalOptions.forEach((card, index) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'tianji-option-card';
+                    button.innerHTML = `<img src="images/cards/${card.imgName}.jpg" alt="${card.char}">`;
+                    button.addEventListener('click', () => selectTianjiOption('radical', index));
+                    radicalBox.appendChild(button);
+                });
+            }
+
+            if (componentBox) {
+                componentBox.innerHTML = '';
+                componentOptions.forEach((card, index) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'tianji-option-card';
+                    button.innerHTML = `<span class="tianji-option-char">${card.char}</span>`;
+                    button.addEventListener('click', () => selectTianjiOption('component', index));
+                    componentBox.appendChild(button);
+                });
+            }
+
+            if (screen) screen.classList.remove('hidden');
+        }
+
+        function selectTianjiOption(type, index) {
+            if (!pendingTianjiDraw) return;
+            const selector = type === 'radical' ? '#tianjiRadicalOptions' : '#tianjiComponentOptions';
+            document.querySelectorAll(`${selector} .tianji-option-card`).forEach((button, buttonIndex) => {
+                button.classList.toggle('selected', buttonIndex === index);
+            });
+            if (type === 'radical') {
+                pendingTianjiDraw.selectedRadicalIndex = index;
+            } else {
+                pendingTianjiDraw.selectedComponentIndex = index;
+            }
+        }
+
+        function confirmTianjiDraw() {
+            const message = document.getElementById('tianjiChoiceMessage');
+            if (!pendingTianjiDraw ||
+                pendingTianjiDraw.selectedRadicalIndex === null ||
+                pendingTianjiDraw.selectedComponentIndex === null) {
+                if (message) message.textContent = '請各選 1 張部首牌與 1 張部件牌';
+                return;
+            }
+
+            const radicalContainer = document.querySelector('.radical-deck .carousel-container .cards-container');
+            const componentContainer = document.querySelector('.component-deck .carousel-container .cards-container');
+            if (!radicalContainer || !componentContainer) return;
+
+            const radicalCardData = pendingTianjiDraw.radicalOptions[pendingTianjiDraw.selectedRadicalIndex];
+            const componentCardData = pendingTianjiDraw.componentOptions[pendingTianjiDraw.selectedComponentIndex];
+            radicalContainer.prepend(createCardElement(radicalCardData, true));
+            componentContainer.prepend(createCardElement(componentCardData, false));
+
+            appendLocalLog(`系統｜隆中對・天機 選擇部首【${radicalCardData.char}】與部件【${componentCardData.char}】`);
+            pendingTianjiDraw = null;
+            const screen = document.getElementById('tianjiChoiceScreen');
+            if (screen) screen.classList.add('hidden');
+        }
+
+        function showZhugeBeifaRewardChoice() {
+            const radicalOption = getRandomElements(RADICAL_POOL, 1)[0];
+            const componentOption = getRandomElements(COMPONENT_POOL, 1)[0];
+            pendingZhugeBeifaReward = { radicalOption, componentOption };
+
+            const screen = document.getElementById('zhugeBeifaRewardScreen');
+            const optionsBox = document.getElementById('zhugeBeifaRewardOptions');
+            const message = document.getElementById('zhugeBeifaRewardMessage');
+            if (message) message.textContent = '';
+            if (!screen || !optionsBox) return;
+
+            optionsBox.innerHTML = '';
+            const radicalButton = document.createElement('button');
+            radicalButton.type = 'button';
+            radicalButton.innerHTML = `
+                <strong>部首牌</strong>
+                <img src="images/cards/${radicalOption.imgName}.jpg" alt="${radicalOption.char}">
+                <span>收入【${radicalOption.char}】</span>
+            `;
+            radicalButton.addEventListener('click', () => confirmZhugeBeifaReward('radical'));
+
+            const componentButton = document.createElement('button');
+            componentButton.type = 'button';
+            componentButton.innerHTML = `
+                <strong>部件牌</strong>
+                <em>${componentOption.char}</em>
+                <span>收入【${componentOption.char}】</span>
+            `;
+            componentButton.addEventListener('click', () => confirmZhugeBeifaReward('component'));
+
+            optionsBox.appendChild(radicalButton);
+            optionsBox.appendChild(componentButton);
+            screen.classList.remove('hidden');
+        }
+
+        function confirmZhugeBeifaReward(type) {
+            const message = document.getElementById('zhugeBeifaRewardMessage');
+            if (!pendingZhugeBeifaReward) {
+                if (message) message.textContent = '目前沒有可領取的北伐獎勵';
+                return;
+            }
+
+            const radicalContainer = document.querySelector('.radical-deck .carousel-container .cards-container');
+            const componentContainer = document.querySelector('.component-deck .carousel-container .cards-container');
+            if (!radicalContainer || !componentContainer) return;
+
+            if (type === 'radical') {
+                radicalContainer.prepend(createCardElement(pendingZhugeBeifaReward.radicalOption, true));
+                appendLocalLog(`系統｜北伐獎勵收入部首牌【${pendingZhugeBeifaReward.radicalOption.char}】`);
+            } else {
+                componentContainer.prepend(createCardElement(pendingZhugeBeifaReward.componentOption, false));
+                appendLocalLog(`系統｜北伐獎勵收入部件牌【${pendingZhugeBeifaReward.componentOption.char}】`);
+            }
+
+            pendingZhugeBeifaReward = null;
+            const screen = document.getElementById('zhugeBeifaRewardScreen');
+            if (screen) screen.classList.add('hidden');
+        }
+        window.confirmZhugeBeifaReward = confirmZhugeBeifaReward;
+
+        function drawTurnCards() {
+            // 🌟 核心關鍵：精準宣告兩個手牌容器變數（請注意 componentContainer 的拼字）
+            const radicalContainer = document.querySelector('.radical-deck .carousel-container .cards-container'); 
+            const componentContainer = document.querySelector('.component-deck .carousel-container .cards-container'); 
+            
+            // 防呆機制：若找不到容器則在 console 提示並中斷，防止後面報錯
+            if (!radicalContainer || !componentContainer) {
+                console.error("找不到部首手牌區（.radical-deck）或部件手牌區（.component-deck）的容器！");
+                return;
+            }
+
+            if (currentZhugeStrategy === 'tianji') {
+                showTianjiDrawChoice();
+                return;
+            }
+
+            // 隨機卡牌庫
+            const radicalPool = [
+                { char: '木', type: 'wood' },  
+                { char: '水', type: 'water' },
+                { char: '火', type: 'fire' },
+                { char: '金', type: 'gold' },
+                { char: '土', type: 'earth' }
+            ];
+
+            const componentPool = ['反', '正', '兆', '寸', '青'];
+
+            const randomRadical = radicalPool[Math.floor(Math.random() * radicalPool.length)];
+            const randomComponent = componentPool[Math.floor(Math.random() * componentPool.length)];
+
+            // 【建立部首牌】
+            const radicalCard = document.createElement('div');
+            radicalCard.className = 'game-card radical-card'; 
+            radicalCard.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-img-box">
+                        <img src="images/cards/${randomRadical.type}.jpg" class="card-photo" alt="${randomRadical.char}">
+                    </div>
+                </div>
+            `;
+
+            // 【建立部件牌】保持古風宣紙底色結構
+            const componentCard = document.createElement('div');
+            componentCard.className = 'game-card component-card'; 
+            componentCard.innerHTML = `
+                <div class="card-inner flex-center">
+                    <div class="card-main-char">${randomComponent}</div>
+                </div>
+            `;
+
+            bindCardClickEvent(radicalCard, true);
+            bindCardClickEvent(componentCard, false);
+
+            // 🌟 兩邊同步 prepend 到最前面（左邊）
+            radicalContainer.prepend(radicalCard);
+            componentContainer.prepend(componentCard);
+
+            console.log(`【回合抽牌】獲得部首【${randomRadical.char}】與部件【${randomComponent}】！`);
+        }
+
+        // 橫向牌組箭頭滑動控制邏輯。
+        // sectionClass 用來指定要滑動哪一個牌區，例如 .radical-deck。
+        function scrollDeck(sectionClass, direction) {
+            // 透過 sectionClass 精準進入，並找到內層 carousel-container 裡的遮罩視窗
+            const wrapper = document.querySelector(`${sectionClass} .cards-carousel-wrapper`);
+            if (!wrapper) return;
+
+            // 一張卡牌(76px) + 間距(8px) = 84px，每次點擊預設移動兩張牌的距離 (168px)
+            const scrollAmount = 168; 
+            
+            wrapper.scrollBy({
+                left: scrollAmount * direction,
+                behavior: 'smooth'
+            });
+        }
+
+        // 初始化選角頁、英雄列表、陣營篩選、確定選擇按鈕。
+        window.addEventListener('DOMContentLoaded', () => {
+            resizeGame(); 
+
+            const heroesList = [
+                { id: "Cao-Cao", name: "曹操", faction: "Wei", avatar: "images/heros/Cao-Cao.jpg" },
+                { id: "Guo-Jia", name: "郭嘉", faction: "Wei", avatar: "images/heros/Guo-Jia.jpg" },
+                { id: "Guan-Yu", name: "關羽", faction: "Shu", avatar: "images/heros/Guan-Yu.jpg" },
+                { id: "Zhuge-Liang", name: "諸葛亮", faction: "Shu", avatar: "images/heros/Zhuge-Liang.jpg" },
+                { id: "Han-Xin", name: "韓信", faction: "Other", avatar: "images/heros/Han-Xin.jpg" },
+                { id: "Xiang-Yu", name: "項羽", faction: "Other", avatar: "images/heros/Xiang-Yu.jpg" }
+            ];
+
+            const factionLabels = { Wei: "魏", Shu: "蜀", Wu: "吳", Other: "群", Extra: "其" };
+            const factionNames = { Wei: "魏國武將", Shu: "蜀漢武將", Wu: "東吳武將", Other: "群雄武將", Extra: "其他武將" };
+            const heroIntros = {
+                "Cao-Cao": "治世之能臣，亂世之雄主。善於經營國力，以深謀遠慮掌握戰局。",
+                "Guo-Jia": "洞察先機的鬼才軍師，擅長觀測對手行動，在關鍵時刻截斷敵方策略。",
+                "Guan-Yu": "忠義無雙的武聖，攻守兼備，能以義行鼓舞友軍並震懾敵方城池。",
+                "Zhuge-Liang": "運籌帷幄的臥龍，能依局勢選擇軍略、民生或天機，穩健拓展優勢。",
+                "Han-Xin": "用兵如神的兵仙，擅長暗藏奇兵，等待最佳時機一舉改變戰局。",
+                "Xiang-Yu": "勇冠天下的西楚霸王，以強大武力壓制戰場，適合果斷進行連續攻城。"
+            };
+            let selectedHeroId = null;
+
+            const btnConfirmSelection = document.getElementById("btn-confirm-selection"); // 取得新按鈕
+            const startScreen = document.getElementById("start-screen");
+            const heroListContainer = document.getElementById("heroListContainer");
+            const factionTabs = document.querySelectorAll('.faction-tab');
+            const heroDetailPanel = document.getElementById('heroDetailPanel');
+            const heroDetailClose = document.getElementById('heroDetailClose');
+
+            // 右側英雄介紹面板的關閉按鈕。
+            if (heroDetailClose && heroDetailPanel) {
+                heroDetailClose.addEventListener('click', () => {
+                    heroDetailPanel.classList.add('hidden');
+                });
+            }
+
+            // 點選英雄頭像後，右側介紹欄會顯示該英雄的名稱、頭像、介紹、數值與技能。
+            function renderHeroDetail(hero, rosterHero) {
+                if (!hero) return;
+                document.getElementById('heroDetailPanel').classList.remove('hidden');
+                document.getElementById('heroDetailEmpty').classList.add('hidden');
+                document.getElementById('heroDetailContent').classList.remove('hidden');
+                document.getElementById('detailFaction').textContent = factionNames[rosterHero.faction] || '亂世英雄';
+                document.getElementById('detailHeroName').textContent = hero.name;
+                document.getElementById('detailHeroAvatar').src = hero.avatar;
+                document.getElementById('detailHeroAvatar').alt = hero.name;
+                document.getElementById('detailHeroIntro').textContent = heroIntros[rosterHero.id] || '身懷絕技的亂世英雄，等待你的號令。';
+                document.getElementById('detailForce').textContent = hero.force;
+                document.getElementById('detailCulture').textContent = hero.culture;
+                document.getElementById('detailCommand').textContent = hero.command ?? 0;
+                document.getElementById('detailPassiveName').textContent = hero.passive.name;
+                document.getElementById('detailPassiveDesc').innerHTML = hero.passive.desc;
+                const activeSkill = hero.skills[0];
+                document.getElementById('detailActiveName').textContent = activeSkill.name;
+                document.getElementById('detailActiveCast').textContent = activeSkill.cast;
+                document.getElementById('detailActiveDesc').innerHTML = activeSkill.desc;
+            }
+
+            // 根據陣營渲染武將頭像。
+            // faction = all / Wei / Shu / Wu / Other / Extra。
+            function renderHeroes(faction) {
+                if (!heroListContainer) return;
+                heroListContainer.innerHTML = ""; // 先清空舊頭像
+
+                // 篩選出符合該陣營的武將
+                const filtered = heroesList.filter(hero => faction === "all" || hero.faction === faction);
+
+                if (filtered.length === 0) {
+                    heroListContainer.innerHTML = '<div class="hero-list-empty">此陣營暫無可用英雄</div>';
+                    return;
+                }
+
+                // 修改你 JavaScript 中 renderHeroes 裡面的 card 生成區塊：
+                filtered.forEach(hero => {
+                    // 1. 建立整體外殼項目
+                    const item = document.createElement("button");
+                    item.type = "button";
+                    item.className = "hero-select-item";
+                    item.dataset.heroId = hero.id;
+                    if (hero.id === selectedHeroId) item.classList.add('selected');
+                    
+                    // 2. 放入圓形頭貼包裹層與下方的名字
+                    item.innerHTML = `
+                        <div class="hero-avatar-wrapper">
+                            <img src="${hero.avatar}" alt="${hero.name}">
+                            <span class="hero-faction-badge ${hero.faction}">${factionLabels[hero.faction]}</span>
+                        </div>
+                        <div class="hero-name">${hero.name}</div>
+                    `;
+
+                    // 3. 綁定點擊事件（改為控制 item 的選中狀態）
+                    item.addEventListener("click", () => {
+                        // 清除其他人的選中高亮
+                        document.querySelectorAll('.hero-select-item').forEach(i => i.classList.remove('selected'));
+                        item.classList.add('selected');
+                        selectedHeroId = hero.id;
+                        
+                        // 呼叫你的核心選擇英雄邏輯
+                        selectHero(hero.id).then(heroData => renderHeroDetail(heroData, hero));
+                        announceNetworkHero(hero.id);
+                    });
+
+                    heroListContainer.appendChild(item);
+                });
+            }
+
+            // 綁定左側陣營按鈕的點擊事件：切換分類後重畫英雄列表。
+            factionTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    factionTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const selectedFaction = this.getAttribute('data-faction');
+                    renderHeroes(selectedFaction); // 切換陣營時重新渲染
+                });
+            });
+
+            // 初始化：一進頁面預設顯示「全部」武將。
+            renderHeroes("all");
+
+            // 點擊中間下方「確定選擇」按鈕後正式進入主遊戲。
+            if (startScreen && btnConfirmSelection) {
+                btnConfirmSelection.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    enterGame(); // 執行相同的進入遊戲邏輯
+                });
+            }
+
+            // 統一進入遊戲流程：
+            // 必須先選英雄，接著隱藏選角頁、載入英雄資料、初始化手牌、開啟回合抽牌。
+            function enterGame() {
+                if (!selectedHeroId) {
+                    const allTab = document.querySelector('.faction-tab[data-faction="all"]');
+                    if (allTab) allTab.click();
+                    return;
+                }
+                console.log("遊戲正式開始，載入核心資料...");
+                startGameWithHero(selectedHeroId);
+            }
+        });
+    </script>
+</body>
+</html>
