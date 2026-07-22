@@ -75,6 +75,10 @@
                     <i class="fa-solid fa-box-archive"></i>
                     <span>背包</span>
                 </button>
+                <button class="lobby-nav-btn" id="drawHeroButton" type="button">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>抽英雄</span>
+                </button>
             </aside>
 
             <section class="lobby-character-screen hidden" id="lobbyCharacterScreen" aria-label="角色選擇">
@@ -2004,6 +2008,7 @@
             const playerProfileModal = document.getElementById('playerProfileModal');
             const playerDisplayNameInput = document.getElementById('playerDisplayNameInput');
             const savePlayerProfile = document.getElementById('savePlayerProfile');
+            const drawHeroButton = document.getElementById('drawHeroButton');
             const googleLogoutButton = document.getElementById('googleLogoutButton');
             const playerProfileMessage = document.getElementById('playerProfileMessage');
             const lobbyPlayerName = document.getElementById('lobbyPlayerName');
@@ -2268,6 +2273,11 @@
 
             if (openLobbyHeroSelect) {
                 openLobbyHeroSelect.addEventListener('click', () => openLobbyCharacterSelect());
+            }
+            if (drawHeroButton) {
+                drawHeroButton.addEventListener('click', () => {
+                    if (lobbyMessage) lobbyMessage.textContent = '抽英雄功能準備中';
+                });
             }
             if (closeLobbyHeroSelect) {
                 closeLobbyHeroSelect.addEventListener('click', () => {
