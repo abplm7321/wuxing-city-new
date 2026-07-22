@@ -340,6 +340,8 @@
     box-sizing: border-box;
     color: #f4ddb0;
     background:
+        linear-gradient(180deg, rgba(7,11,18,.12), rgba(4,5,8,.75) 72%, rgba(2,3,5,.96)),
+        radial-gradient(circle at 56% 45%, rgba(247,177,61,.28), transparent 35%),
         url('../images/pick-hero.jpg') center top/cover;
     box-shadow: inset 0 0 120px rgba(0,0,0,.8);
 }
