@@ -27,9 +27,9 @@
                     </div>
                 </button>
                 <div class="lobby-resource-strip" aria-label="玩家資源">
-                    <div><i class="fa-solid fa-coins"></i><span>1280</span></div>
-                    <div><i class="fa-solid fa-gem"></i><span>45</span></div>
-                    <div><i class="fa-solid fa-ticket"></i><span>3</span></div>
+                    <div><i class="fa-solid fa-coins"></i><span id="walletCoins">0</span></div>
+                    <div><i class="fa-solid fa-gem"></i><span id="walletGems">0</span></div>
+                    <div><i class="fa-solid fa-ticket"></i><span id="walletTickets">0</span></div>
                 </div>
             </header>
 
@@ -869,6 +869,12 @@
         let gameHasStarted = false;
         // 首頁大廳目前挑選的武將。進入房間時會直接用這位，不再進入二次選角。
         let selectedLobbyHeroId = 'Zhuge-Liang';
+        // 首頁資源列。之後登入、背包、獎勵都可以改這個物件後呼叫 renderPlayerWallet()。
+        const playerWallet = {
+            coins: 0,
+            gems: 0,
+            tickets: 0
+        };
         // 記錄這一回合是否已經抽過牌，避免輪詢同步時重複抽
         let lastTurnDrawKey = '';
         // 記錄結算畫面是否已顯示過，避免重複生成結算內容
@@ -1990,6 +1996,9 @@
             const lobbyMessage = document.getElementById('lobbyMessage');
             const playerNameInput = document.getElementById('networkPlayerName');
             const roomCodeInput = document.getElementById('roomCodeInput');
+            const walletCoins = document.getElementById('walletCoins');
+            const walletGems = document.getElementById('walletGems');
+            const walletTickets = document.getElementById('walletTickets');
             const openPlayerProfile = document.getElementById('openPlayerProfile');
             const closePlayerProfile = document.getElementById('closePlayerProfile');
             const playerProfileModal = document.getElementById('playerProfileModal');
@@ -2031,6 +2040,15 @@
             let draftLobbyHeroId = selectedLobbyHeroId;
             const PLAYER_PROFILE_KEY = 'wuxingPlayerProfile';
             let playerProfile = loadPlayerProfile();
+
+            function renderPlayerWallet() {
+                if (walletCoins) walletCoins.textContent = playerWallet.coins;
+                if (walletGems) walletGems.textContent = playerWallet.gems;
+                if (walletTickets) walletTickets.textContent = playerWallet.tickets;
+            }
+            window.playerWallet = playerWallet;
+            window.renderPlayerWallet = renderPlayerWallet;
+            renderPlayerWallet();
 
             function loadPlayerProfile() {
                 try {
