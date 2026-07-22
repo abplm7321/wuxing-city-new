@@ -47,6 +47,16 @@
     min-width: 250px;
     height: 72px;
     padding: 0 24px 0 14px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: .18s ease;
+}
+
+.lobby-player-chip:hover {
+    border-color: #ffd56d;
+    transform: translateY(-2px);
+    filter: brightness(1.08);
 }
 
 .player-avatar-mark {
@@ -75,6 +85,178 @@
     margin-top: 3px;
     font-size: 24px;
     letter-spacing: 3px;
+}
+
+.player-profile-modal {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    background: rgba(0,0,0,.62);
+    backdrop-filter: blur(3px);
+}
+
+.player-profile-card {
+    position: relative;
+    width: 470px;
+    box-sizing: border-box;
+    padding: 34px 38px 36px;
+    color: #ecd4a0;
+    background: linear-gradient(150deg, rgba(18,22,27,.98), rgba(8,10,13,.98));
+    border: 1px solid #c48c3b;
+    outline: 1px solid rgba(255,218,126,.22);
+    outline-offset: -8px;
+    box-shadow: 0 28px 80px rgba(0,0,0,.74), inset 0 0 38px rgba(229,159,56,.1);
+}
+
+.player-profile-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: #ebce93;
+    background: rgba(8,10,12,.76);
+    border: 1px solid rgba(218,167,79,.68);
+    border-radius: 50%;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.player-profile-title span {
+    color: #c79043;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 5px;
+}
+
+.player-profile-title h2 {
+    margin: 6px 0 22px;
+    color: #ffe19a;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: 8px;
+}
+
+.player-profile-user {
+    display: grid;
+    grid-template-columns: 68px 1fr;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 22px;
+    padding: 16px;
+    background: rgba(5,7,10,.46);
+    border: 1px solid rgba(156,113,57,.52);
+}
+
+.player-profile-avatar {
+    width: 64px;
+    height: 64px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    color: #2a1907;
+    background: linear-gradient(145deg, #f0cc70, #9e6325);
+    border: 2px solid #ffe5a0;
+    border-radius: 50%;
+    font-size: 30px;
+    font-weight: 900;
+}
+
+.player-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.player-profile-user strong {
+    display: block;
+    color: #ffe4a5;
+    font-size: 23px;
+    letter-spacing: 3px;
+}
+
+.player-profile-user small {
+    display: block;
+    margin-top: 4px;
+    color: #9f927d;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+.player-profile-label {
+    display: block;
+    color: #b7a17a;
+    font-size: 13px;
+    letter-spacing: 3px;
+}
+
+.player-profile-label input {
+    width: 100%;
+    height: 52px;
+    box-sizing: border-box;
+    margin-top: 8px;
+    padding: 0 15px;
+    color: #f1dfb6;
+    background: #111315;
+    border: 1px solid #66502e;
+    outline: none;
+    font: 18px 'Noto Serif TC', serif;
+}
+
+.google-login-box {
+    min-height: 46px;
+    margin-top: 18px;
+}
+
+.google-config-hint {
+    min-height: 42px;
+    display: grid;
+    place-items: center;
+    color: #d0b98c;
+    background: rgba(5,7,10,.42);
+    border: 1px dashed rgba(203,151,67,.54);
+    font-size: 13px;
+    letter-spacing: 2px;
+}
+
+.google-logout,
+.player-profile-save {
+    width: 100%;
+    height: 52px;
+    color: #ecd4a0;
+    background: #282116;
+    border: 1px solid #886535;
+    font: 700 17px 'Noto Serif TC', serif;
+    letter-spacing: 3px;
+    cursor: pointer;
+}
+
+.google-logout:hover {
+    border-color: #d5a453;
+    color: #fff0bd;
+}
+
+.player-profile-save {
+    height: 58px;
+    margin-top: 14px;
+    color: #241505;
+    background: linear-gradient(100deg,#b15e20,#f1c35d,#ac681f);
+    border-color: #ffe08c;
+    font-size: 22px;
+    font-weight: 900;
+}
+
+.player-profile-message {
+    min-height: 20px;
+    margin-top: 12px;
+    color: #f0a06f;
+    font-size: 13px;
+    letter-spacing: 1px;
 }
 
 .lobby-resource-strip {

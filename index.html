@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/matchmaking.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <!-- 核心縮放容器：鎖定 1920x1080 比例 -->
@@ -18,19 +19,48 @@
             <div class="lobby-bg-glow"></div>
 
             <header class="lobby-topbar">
-                <div class="lobby-player-chip">
-                    <span class="player-avatar-mark">將</span>
+                <button class="lobby-player-chip" id="openPlayerProfile" type="button">
+                    <span class="player-avatar-mark" id="playerAvatarMark">將</span>
                     <div>
-                        <small>玩家</small>
-                        <strong>亂世新主</strong>
+                        <small id="playerLoginStatus">訪客</small>
+                        <strong id="lobbyPlayerName">亂世新主</strong>
                     </div>
-                </div>
+                </button>
                 <div class="lobby-resource-strip" aria-label="玩家資源">
                     <div><i class="fa-solid fa-coins"></i><span>1280</span></div>
                     <div><i class="fa-solid fa-gem"></i><span>45</span></div>
                     <div><i class="fa-solid fa-ticket"></i><span>3</span></div>
                 </div>
             </header>
+
+            <section class="player-profile-modal hidden" id="playerProfileModal" aria-label="玩家資料">
+                <div class="player-profile-card">
+                    <button class="player-profile-close" id="closePlayerProfile" type="button" aria-label="關閉玩家資料">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <div class="player-profile-title">
+                        <span>玩家資料</span>
+                        <h2>帳號</h2>
+                    </div>
+                    <div class="player-profile-user">
+                        <div class="player-profile-avatar" id="profileAvatarPreview">將</div>
+                        <div>
+                            <strong id="profileLoginName">尚未登入</strong>
+                            <small id="profileLoginEmail">可以先用訪客暱稱遊玩</small>
+                        </div>
+                    </div>
+                    <label class="player-profile-label">
+                        暱稱
+                        <input id="playerDisplayNameInput" maxlength="12" autocomplete="off">
+                    </label>
+                    <div class="google-login-box">
+                        <div id="googleSignInButton"></div>
+                        <button class="google-logout hidden" id="googleLogoutButton" type="button">登出 Google</button>
+                    </div>
+                    <div class="player-profile-message" id="playerProfileMessage"></div>
+                    <button class="player-profile-save" id="savePlayerProfile" type="button">儲存</button>
+                </div>
+            </section>
 
             <aside class="lobby-left-nav">
                 <button class="lobby-nav-btn" id="openLobbyHeroSelect" type="button">
@@ -1960,6 +1990,19 @@
             const lobbyMessage = document.getElementById('lobbyMessage');
             const playerNameInput = document.getElementById('networkPlayerName');
             const roomCodeInput = document.getElementById('roomCodeInput');
+            const openPlayerProfile = document.getElementById('openPlayerProfile');
+            const closePlayerProfile = document.getElementById('closePlayerProfile');
+            const playerProfileModal = document.getElementById('playerProfileModal');
+            const playerDisplayNameInput = document.getElementById('playerDisplayNameInput');
+            const savePlayerProfile = document.getElementById('savePlayerProfile');
+            const googleLogoutButton = document.getElementById('googleLogoutButton');
+            const playerProfileMessage = document.getElementById('playerProfileMessage');
+            const lobbyPlayerName = document.getElementById('lobbyPlayerName');
+            const playerLoginStatus = document.getElementById('playerLoginStatus');
+            const playerAvatarMark = document.getElementById('playerAvatarMark');
+            const profileAvatarPreview = document.getElementById('profileAvatarPreview');
+            const profileLoginName = document.getElementById('profileLoginName');
+            const profileLoginEmail = document.getElementById('profileLoginEmail');
             const lobbyHeroImage = document.getElementById('lobbyHeroImage');
             const lobbyHeroName = document.getElementById('lobbyHeroName');
             const openLobbyHeroSelect = document.getElementById('openLobbyHeroSelect');
@@ -1986,6 +2029,156 @@
                 'Xiang-Yu': '勇冠天下的西楚霸王，以強大武力壓制戰場，適合果斷進行連續攻城。'
             };
             let draftLobbyHeroId = selectedLobbyHeroId;
+            const PLAYER_PROFILE_KEY = 'wuxingPlayerProfile';
+            let playerProfile = loadPlayerProfile();
+
+            function loadPlayerProfile() {
+                try {
+                    return JSON.parse(localStorage.getItem(PLAYER_PROFILE_KEY)) || { displayName: '亂世新主' };
+                } catch (error) {
+                    return { displayName: '亂世新主' };
+                }
+            }
+
+            function savePlayerProfileData() {
+                localStorage.setItem(PLAYER_PROFILE_KEY, JSON.stringify(playerProfile));
+            }
+
+            function getPlayerDisplayName() {
+                return String(playerProfile.displayName || playerProfile.name || '玩家').slice(0, 12);
+            }
+
+            function renderProfileAvatar(target, compact = false) {
+                if (!target) return;
+                target.innerHTML = '';
+                if (playerProfile.picture && !compact) {
+                    const image = document.createElement('img');
+                    image.src = playerProfile.picture;
+                    image.alt = getPlayerDisplayName();
+                    target.appendChild(image);
+                    return;
+                }
+                target.textContent = getPlayerDisplayName().slice(0, 1) || '將';
+            }
+
+            function updatePlayerProfileUi() {
+                const displayName = getPlayerDisplayName();
+                if (lobbyPlayerName) lobbyPlayerName.textContent = displayName;
+                if (playerNameInput) playerNameInput.value = displayName;
+                if (playerDisplayNameInput) playerDisplayNameInput.value = displayName;
+                if (playerLoginStatus) playerLoginStatus.textContent = playerProfile.googleId ? 'Google 已登入' : '訪客';
+                if (profileLoginName) profileLoginName.textContent = playerProfile.googleId ? (playerProfile.name || displayName) : '尚未登入';
+                if (profileLoginEmail) profileLoginEmail.textContent = playerProfile.email || '可以先用訪客暱稱遊玩';
+                if (googleLogoutButton) googleLogoutButton.classList.toggle('hidden', !playerProfile.googleId);
+                renderProfileAvatar(playerAvatarMark, true);
+                renderProfileAvatar(profileAvatarPreview);
+            }
+
+            function openProfileModal() {
+                updatePlayerProfileUi();
+                if (playerProfileMessage) playerProfileMessage.textContent = '';
+                if (playerProfileModal) playerProfileModal.classList.remove('hidden');
+                if (playerDisplayNameInput) playerDisplayNameInput.focus();
+            }
+
+            function closeProfileModal() {
+                if (playerProfileModal) playerProfileModal.classList.add('hidden');
+            }
+
+            function saveProfileName() {
+                const nextName = String(playerDisplayNameInput?.value || '').trim().slice(0, 12);
+                if (!nextName) {
+                    if (playerProfileMessage) playerProfileMessage.textContent = '請輸入暱稱';
+                    return;
+                }
+                playerProfile.displayName = nextName;
+                savePlayerProfileData();
+                updatePlayerProfileUi();
+                if (playerProfileMessage) playerProfileMessage.textContent = '已儲存';
+            }
+
+            async function handleGoogleCredential(response) {
+                if (playerProfileMessage) playerProfileMessage.textContent = '正在登入 Google…';
+                try {
+                    const result = await networkRequest('/api/auth/google', {
+                        method: 'POST',
+                        body: JSON.stringify({ credential: response.credential })
+                    });
+                    playerProfile = {
+                        ...playerProfile,
+                        googleId: result.user.id,
+                        name: result.user.name,
+                        email: result.user.email,
+                        picture: result.user.picture,
+                        displayName: String(result.user.name || '玩家').slice(0, 12)
+                    };
+                    savePlayerProfileData();
+                    updatePlayerProfileUi();
+                    if (playerProfileMessage) playerProfileMessage.textContent = 'Google 登入成功';
+                } catch (error) {
+                    if (playerProfileMessage) playerProfileMessage.textContent = error.message;
+                }
+            }
+
+            async function initGoogleLogin() {
+                const buttonHost = document.getElementById('googleSignInButton');
+                if (!buttonHost) return;
+                try {
+                    const result = await networkRequest('/api/auth/config');
+                    if (!result.googleClientId) {
+                        buttonHost.innerHTML = '<div class="google-config-hint">尚未設定 GOOGLE_CLIENT_ID</div>';
+                        return;
+                    }
+
+                    const renderGoogleButton = () => {
+                        if (!window.google?.accounts?.id) {
+                            buttonHost.innerHTML = '<div class="google-config-hint">Google 登入載入失敗</div>';
+                            return;
+                        }
+                        window.google.accounts.id.initialize({
+                            client_id: result.googleClientId,
+                            callback: handleGoogleCredential
+                        });
+                        window.google.accounts.id.renderButton(buttonHost, {
+                            theme: 'filled_blue',
+                            size: 'large',
+                            text: 'signin_with',
+                            width: 300
+                        });
+                    };
+
+                    if (window.google?.accounts?.id) {
+                        renderGoogleButton();
+                    } else {
+                        window.addEventListener('load', renderGoogleButton, { once: true });
+                    }
+                } catch (error) {
+                    buttonHost.innerHTML = '<div class="google-config-hint">登入設定讀取失敗</div>';
+                }
+            }
+
+            if (openPlayerProfile) openPlayerProfile.addEventListener('click', openProfileModal);
+            if (closePlayerProfile) closePlayerProfile.addEventListener('click', closeProfileModal);
+            if (savePlayerProfile) savePlayerProfile.addEventListener('click', saveProfileName);
+            if (playerDisplayNameInput) {
+                playerDisplayNameInput.addEventListener('keydown', event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        saveProfileName();
+                    }
+                });
+            }
+            if (googleLogoutButton) {
+                googleLogoutButton.addEventListener('click', () => {
+                    if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
+                    playerProfile = { displayName: getPlayerDisplayName() };
+                    savePlayerProfileData();
+                    updatePlayerProfileUi();
+                    if (playerProfileMessage) playerProfileMessage.textContent = '已登出 Google';
+                });
+            }
+            updatePlayerProfileUi();
+            initGoogleLogin();
 
             function setLobbyMainHero(heroId) {
                 const rosterHero = lobbyHeroes.find(hero => hero.id === heroId);

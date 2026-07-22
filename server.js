@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 
 // ---------------------------------------------------------------------------
 // 伺服器基本設定
@@ -12,6 +13,43 @@ app.use(cors());
 app.use(express.json());
 // 把這個資料夾當成靜態網站根目錄，瀏覽器才能讀 index.html、style.css、images。
 app.use(express.static(__dirname));
+
+// ---------------------------------------------------------------------------
+// Google 登入設定與驗證
+// ---------------------------------------------------------------------------
+app.get('/api/auth/config', (req, res) => {
+    res.json({ success: true, googleClientId: GOOGLE_CLIENT_ID });
+});
+
+app.post('/api/auth/google', async (req, res) => {
+    const credential = req.body && req.body.credential;
+    if (!GOOGLE_CLIENT_ID) {
+        return res.status(500).json({ success: false, message: '尚未設定 GOOGLE_CLIENT_ID' });
+    }
+    if (!credential) {
+        return res.status(400).json({ success: false, message: '缺少 Google 登入憑證' });
+    }
+
+    try {
+        const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+        const profile = await response.json();
+        if (!response.ok || profile.aud !== GOOGLE_CLIENT_ID || !profile.sub) {
+            return res.status(401).json({ success: false, message: 'Google 登入驗證失敗' });
+        }
+
+        res.json({
+            success: true,
+            user: {
+                id: profile.sub,
+                name: profile.name || profile.email || '玩家',
+                email: profile.email || '',
+                picture: profile.picture || ''
+            }
+        });
+    } catch (error) {
+        res.status(502).json({ success: false, message: '無法連線至 Google 驗證服務' });
+    }
+});
 
 // ---------------------------------------------------------------------------
 // 英雄資料庫
