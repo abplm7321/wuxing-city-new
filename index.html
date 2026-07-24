@@ -123,25 +123,18 @@
             </section>
 
             <section class="hero-draw-screen hidden" id="heroDrawScreen" aria-label="抽英雄">
-                <div class="hero-draw-header">
-                    <div>
-                        <span>英雄卡池</span>
-                        <h2>招募武將</h2>
-                    </div>
+                <div class="hero-draw-frame">
+                    <img class="hero-draw-banner" src="images/hero-draw-pool.png" alt="群雄集結抽英雄卡池">
                     <button class="hero-draw-close" id="closeHeroDraw" type="button" aria-label="關閉抽英雄">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
+                    <button class="hero-draw-action hero-draw-once" id="startHeroDraw" type="button" aria-label="抽取一次"></button>
+                    <button class="hero-draw-action hero-draw-ten" id="startHeroDrawTen" type="button" aria-label="抽取十次"></button>
+                    <button class="hero-draw-equip hidden" id="equipDrawnHero" type="button">設為出戰</button>
                 </div>
-                <div class="hero-draw-layout">
-                    <div class="hero-draw-pool" id="heroDrawPool"></div>
-                    <aside class="hero-draw-panel">
-                        <div class="hero-draw-result" id="heroDrawResult">
-                            <h3>等待召令</h3>
-                            <p>按下抽卡後，會從你還沒有的英雄裡隨機獲得一位。</p>
-                        </div>
-                        <button class="hero-draw-action" id="startHeroDraw" type="button">抽卡</button>
-                        <button class="hero-draw-equip hidden" id="equipDrawnHero" type="button">設為出戰</button>
-                    </aside>
+                <div class="hero-draw-result hidden" id="heroDrawResult">
+                    <h3>等待召令</h3>
+                    <p>按下抽卡後，會從你還沒有的英雄裡隨機獲得一位。</p>
                 </div>
             </section>
 
@@ -1974,6 +1967,7 @@
             const heroDrawPool = document.getElementById('heroDrawPool');
             const closeHeroDraw = document.getElementById('closeHeroDraw');
             const startHeroDraw = document.getElementById('startHeroDraw');
+            const startHeroDrawTen = document.getElementById('startHeroDrawTen');
             const heroDrawResult = document.getElementById('heroDrawResult');
             const equipDrawnHero = document.getElementById('equipDrawnHero');
             const lobbyHeroes = [
@@ -2276,51 +2270,62 @@
                 renderHeroDrawPool();
                 const hasMissingHero = lobbyHeroes.some(hero => !isHeroUnlocked(hero.id));
                 if (heroDrawResult) {
+                    heroDrawResult.classList.toggle('hidden', hasMissingHero);
                     heroDrawResult.innerHTML = hasMissingHero ? `
-                        <span>英雄卡池</span>
                         <h3>等待召令</h3>
                         <p>按下抽卡後，會從你還沒有的英雄裡隨機獲得一位。</p>
                     ` : `
-                        <span>卡池完成</span>
                         <h3>英雄已全數取得</h3>
                         <p>目前卡池裡的武將都已經加入你的帳號。</p>
                     `;
                 }
                 if (startHeroDraw) startHeroDraw.disabled = !hasMissingHero;
+                if (startHeroDrawTen) startHeroDrawTen.disabled = !hasMissingHero;
                 if (equipDrawnHero) equipDrawnHero.classList.add('hidden');
                 if (heroDrawScreen) heroDrawScreen.classList.remove('hidden');
             }
 
-            function drawMissingHero() {
+            function drawMissingHeroes(count = 1) {
                 const missingHeroes = lobbyHeroes.filter(hero => !isHeroUnlocked(hero.id));
                 if (!missingHeroes.length) {
                     if (heroDrawResult) {
+                        heroDrawResult.classList.remove('hidden');
                         heroDrawResult.innerHTML = `
-                            <span>卡池完成</span>
                             <h3>英雄已全數取得</h3>
                             <p>目前卡池裡的武將都已經加入你的帳號。</p>
                         `;
                     }
                     if (startHeroDraw) startHeroDraw.disabled = true;
+                    if (startHeroDrawTen) startHeroDrawTen.disabled = true;
                     if (equipDrawnHero) equipDrawnHero.classList.add('hidden');
                     return;
                 }
-                const drawnHero = missingHeroes[Math.floor(Math.random() * missingHeroes.length)];
-                unlockHero(drawnHero.id);
-                lastDrawnHeroId = drawnHero.id;
+                const drawPool = [...missingHeroes];
+                const drawnHeroes = [];
+                const drawCount = Math.min(count, drawPool.length);
+                for (let i = 0; i < drawCount; i += 1) {
+                    const drawnIndex = Math.floor(Math.random() * drawPool.length);
+                    const [drawnHero] = drawPool.splice(drawnIndex, 1);
+                    unlockHero(drawnHero.id);
+                    drawnHeroes.push(drawnHero);
+                }
+                const finalDrawnHero = drawnHeroes[drawnHeroes.length - 1];
+                lastDrawnHeroId = finalDrawnHero?.id || null;
                 renderHeroDrawPool();
                 renderLobbyCharacterGrid();
                 if (heroDrawResult) {
+                    heroDrawResult.classList.remove('hidden');
+                    const drawnNames = drawnHeroes.map(hero => hero.name).join('、');
                     heroDrawResult.innerHTML = `
-                        <span>抽到了</span>
-                        <img src="${drawnHero.avatar}" alt="${drawnHero.name}">
-                        <h3>${drawnHero.name}</h3>
-                        <p>${lobbyFactionNames[drawnHero.faction] || '亂世英雄'}已加入你的帳號。</p>
+                        <h3>抽到了</h3>
+                        <p>${drawnNames} 已加入你的帳號。</p>
                     `;
                 }
                 if (equipDrawnHero) equipDrawnHero.classList.remove('hidden');
-                if (lobbyMessage) lobbyMessage.textContent = `抽到了 ${drawnHero.name}`;
-                if (startHeroDraw) startHeroDraw.disabled = lobbyHeroes.every(hero => isHeroUnlocked(hero.id));
+                if (lobbyMessage) lobbyMessage.textContent = `抽到了 ${drawnHeroes.map(hero => hero.name).join('、')}`;
+                const allUnlocked = lobbyHeroes.every(hero => isHeroUnlocked(hero.id));
+                if (startHeroDraw) startHeroDraw.disabled = allUnlocked;
+                if (startHeroDrawTen) startHeroDrawTen.disabled = allUnlocked;
             }
 
             if (openLobbyHeroSelect) {
@@ -2332,8 +2337,10 @@
             if (closeHeroDraw) closeHeroDraw.addEventListener('click', () => {
                 if (heroDrawScreen) heroDrawScreen.classList.add('hidden');
                 if (startHeroDraw) startHeroDraw.disabled = false;
+                if (startHeroDrawTen) startHeroDrawTen.disabled = false;
             });
-            if (startHeroDraw) startHeroDraw.addEventListener('click', drawMissingHero);
+            if (startHeroDraw) startHeroDraw.addEventListener('click', () => drawMissingHeroes(1));
+            if (startHeroDrawTen) startHeroDrawTen.addEventListener('click', () => drawMissingHeroes(10));
             if (equipDrawnHero) {
                 equipDrawnHero.addEventListener('click', () => {
                     if (!lastDrawnHeroId) return;
