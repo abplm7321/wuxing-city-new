@@ -485,6 +485,52 @@
     box-shadow: 0 20px 34px rgba(0,0,0,.55), 0 0 0 4px rgba(255,205,88,.18), inset 0 0 26px rgba(255,207,103,.18);
 }
 
+.lobby-character-card.locked img {
+    filter: grayscale(.85) brightness(.45);
+}
+
+.lobby-character-card.locked strong {
+    color: #8f8779;
+}
+
+.lobby-character-card.locked:hover,
+.lobby-character-card.locked.selected {
+    border-color: rgba(178,137,73,.76);
+    box-shadow: 0 16px 30px rgba(0,0,0,.52), inset 0 0 24px rgba(255,207,103,.08);
+}
+
+.hero-owned-badge,
+.hero-lock-badge {
+    position: absolute;
+    top: 14px;
+    right: 12px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    min-width: 68px;
+    height: 32px;
+    padding: 0 10px;
+    box-sizing: border-box;
+    color: #241505;
+    background: linear-gradient(120deg, #f4c965, #a76722);
+    border: 1px solid #ffe6a4;
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 900;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 10px rgba(0,0,0,.45);
+}
+
+.hero-lock-badge {
+    min-width: 40px;
+    width: 40px;
+    padding: 0;
+    color: #d6c5a4;
+    background: rgba(8,10,13,.86);
+    border-color: rgba(183,145,82,.72);
+    font-size: 16px;
+}
+
 .lobby-character-detail {
     position: relative;
     min-height: 0;
@@ -602,6 +648,13 @@
 }
 
 .lobby-character-select:hover { filter: brightness(1.08); }
+.lobby-character-select:disabled {
+    color: #716858;
+    background: linear-gradient(100deg, #2a2a2a, #505050, #242424);
+    border-top-color: #6f6557;
+    cursor: default;
+    filter: grayscale(.5);
+}
 
 .lobby-hero-stage {
     position: absolute;
