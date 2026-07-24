@@ -122,11 +122,38 @@
                 </div>
             </section>
 
+            <section class="hero-draw-screen hidden" id="heroDrawScreen" aria-label="抽英雄">
+                <div class="hero-draw-header">
+                    <div>
+                        <span>英雄卡池</span>
+                        <h2>招募武將</h2>
+                    </div>
+                    <button class="hero-draw-close" id="closeHeroDraw" type="button" aria-label="關閉抽英雄">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="hero-draw-layout">
+                    <div class="hero-draw-pool" id="heroDrawPool"></div>
+                    <aside class="hero-draw-panel">
+                        <div class="hero-draw-orb">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                        <div class="hero-draw-result" id="heroDrawResult">
+                            <span>尚未抽卡</span>
+                            <h3>等待召令</h3>
+                            <p>按下抽卡後，會從你還沒有的英雄裡隨機獲得一位。</p>
+                        </div>
+                        <button class="hero-draw-action" id="startHeroDraw" type="button">抽卡</button>
+                        <button class="hero-draw-equip hidden" id="equipDrawnHero" type="button">設為出戰</button>
+                    </aside>
+                </div>
+            </section>
+
             <main class="lobby-hero-stage">
                 <div class="lobby-hero-portrait">
-                    <img id="lobbyHeroImage" src="images/heros/Zhuge-Liang.jpg" alt="目前展示角色">
+                    <img id="lobbyHeroImage" src="images/heros/Cao-Cao.jpg" alt="目前展示角色">
                 </div>
-                <h1 id="lobbyHeroName">諸葛亮</h1>
+                <h1 id="lobbyHeroName">曹操</h1>
             </main>
 
             <section class="lobby-match-panel" aria-label="配對">
@@ -795,7 +822,7 @@
         // 記錄是否已經從選角頁進入主遊戲，避免還沒開局就自動抽牌
         let gameHasStarted = false;
         // 首頁大廳目前挑選的武將。進入房間時會直接用這位，不再進入二次選角。
-        let selectedLobbyHeroId = 'Zhuge-Liang';
+        let selectedLobbyHeroId = 'Cao-Cao';
         // 首頁資源列。之後登入、背包、獎勵都可以改這個物件後呼叫 renderPlayerWallet()。
         const playerWallet = {
             coins: 0,
@@ -1947,6 +1974,12 @@
             const lobbyCharacterScreen = document.getElementById('lobbyCharacterScreen');
             const lobbyCharacterGrid = document.getElementById('lobbyCharacterGrid');
             const confirmLobbyHeroSelect = document.getElementById('confirmLobbyHeroSelect');
+            const heroDrawScreen = document.getElementById('heroDrawScreen');
+            const heroDrawPool = document.getElementById('heroDrawPool');
+            const closeHeroDraw = document.getElementById('closeHeroDraw');
+            const startHeroDraw = document.getElementById('startHeroDraw');
+            const heroDrawResult = document.getElementById('heroDrawResult');
+            const equipDrawnHero = document.getElementById('equipDrawnHero');
             const lobbyHeroes = [
                 { id: 'Cao-Cao', name: '曹操', faction: 'Wei', avatar: 'images/heros/Cao-Cao.jpg' },
                 { id: 'Guo-Jia', name: '郭嘉', faction: 'Wei', avatar: 'images/heros/Guo-Jia.jpg' },
@@ -1966,6 +1999,7 @@
                 'Xiang-Yu': '勇冠天下的西楚霸王，以強大武力壓制戰場，適合果斷進行連續攻城。'
             };
             let draftLobbyHeroId = selectedLobbyHeroId;
+            let lastDrawnHeroId = null;
             const PLAYER_PROFILE_KEY = 'wuxingPlayerProfile';
             let playerProfile = loadPlayerProfile();
 
@@ -1980,14 +2014,33 @@
 
             function loadPlayerProfile() {
                 try {
-                    return JSON.parse(localStorage.getItem(PLAYER_PROFILE_KEY)) || { displayName: '亂世新主' };
+                    const savedProfile = JSON.parse(localStorage.getItem(PLAYER_PROFILE_KEY));
+                    return savedProfile || { displayName: '亂世新主', unlockedHeroes: ['Cao-Cao'] };
                 } catch (error) {
-                    return { displayName: '亂世新主' };
+                    return { displayName: '亂世新主', unlockedHeroes: ['Cao-Cao'] };
                 }
             }
 
             function savePlayerProfileData() {
+                if (!Array.isArray(playerProfile.unlockedHeroes)) playerProfile.unlockedHeroes = ['Cao-Cao'];
+                if (!playerProfile.unlockedHeroes.includes('Cao-Cao')) playerProfile.unlockedHeroes.unshift('Cao-Cao');
                 localStorage.setItem(PLAYER_PROFILE_KEY, JSON.stringify(playerProfile));
+            }
+
+            function getUnlockedHeroIds() {
+                if (!Array.isArray(playerProfile.unlockedHeroes)) playerProfile.unlockedHeroes = ['Cao-Cao'];
+                if (!playerProfile.unlockedHeroes.includes('Cao-Cao')) playerProfile.unlockedHeroes.unshift('Cao-Cao');
+                return playerProfile.unlockedHeroes;
+            }
+
+            function isHeroUnlocked(heroId) {
+                return getUnlockedHeroIds().includes(heroId);
+            }
+
+            function unlockHero(heroId) {
+                const unlockedHeroes = getUnlockedHeroIds();
+                if (!unlockedHeroes.includes(heroId)) unlockedHeroes.push(heroId);
+                savePlayerProfileData();
             }
 
             function getPlayerDisplayName() {
@@ -2117,7 +2170,7 @@
             if (googleLogoutButton) {
                 googleLogoutButton.addEventListener('click', () => {
                     if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
-                    playerProfile = { displayName: getPlayerDisplayName() };
+                    playerProfile = { displayName: getPlayerDisplayName(), unlockedHeroes: getUnlockedHeroIds() };
                     savePlayerProfileData();
                     updatePlayerProfileUi();
                     if (playerProfileMessage) playerProfileMessage.textContent = '已登出 Google';
@@ -2129,6 +2182,10 @@
             function setLobbyMainHero(heroId) {
                 const rosterHero = lobbyHeroes.find(hero => hero.id === heroId);
                 if (!rosterHero) return;
+                if (!isHeroUnlocked(heroId)) {
+                    if (lobbyMessage) lobbyMessage.textContent = '尚未取得此英雄，請先抽到他';
+                    return;
+                }
                 selectedLobbyHeroId = heroId;
                 draftLobbyHeroId = heroId;
                 if (lobbyHeroImage) {
@@ -2164,6 +2221,11 @@
                     const activeSkill = hero.skills?.[0];
                     document.getElementById('lobbyDetailActiveName').textContent = activeSkill?.name || '無';
                     document.getElementById('lobbyDetailActiveDesc').innerHTML = activeSkill?.desc || '';
+                    if (confirmLobbyHeroSelect) {
+                        const unlocked = isHeroUnlocked(heroId);
+                        confirmLobbyHeroSelect.disabled = !unlocked;
+                        confirmLobbyHeroSelect.textContent = unlocked ? '選擇' : '尚未擁有';
+                    }
                 } catch (error) {
                     if (lobbyMessage) lobbyMessage.textContent = '角色資料讀取失敗';
                 }
@@ -2173,13 +2235,15 @@
                 if (!lobbyCharacterGrid) return;
                 lobbyCharacterGrid.innerHTML = '';
                 lobbyHeroes.forEach(hero => {
+                    const unlocked = isHeroUnlocked(hero.id);
                     const card = document.createElement('button');
                     card.type = 'button';
-                    card.className = `lobby-character-card ${hero.id === draftLobbyHeroId ? 'selected' : ''}`;
+                    card.className = `lobby-character-card ${hero.id === draftLobbyHeroId ? 'selected' : ''} ${unlocked ? 'unlocked' : 'locked'}`;
                     card.dataset.heroId = hero.id;
                     card.innerHTML = `
                         <img src="${hero.avatar}" alt="${hero.name}">
                         <span class="lobby-character-faction ${hero.faction}">${lobbyFactionLabels[hero.faction] || '將'}</span>
+                        <em class="${unlocked ? 'hero-owned-badge' : 'hero-lock-badge'}">${unlocked ? '已擁有' : '<i class="fa-solid fa-lock"></i>'}</em>
                         <strong>${hero.name}</strong>
                     `;
                     card.addEventListener('click', () => renderLobbyHeroDetail(hero.id));
@@ -2194,12 +2258,91 @@
                 if (lobbyCharacterScreen) lobbyCharacterScreen.classList.remove('hidden');
             }
 
+            function renderHeroDrawPool() {
+                if (!heroDrawPool) return;
+                heroDrawPool.innerHTML = '';
+                lobbyHeroes.forEach(hero => {
+                    const unlocked = isHeroUnlocked(hero.id);
+                    const item = document.createElement('div');
+                    item.className = `hero-draw-card ${unlocked ? 'owned' : 'available'}`;
+                    item.innerHTML = `
+                        <img src="${hero.avatar}" alt="${hero.name}">
+                        <span class="lobby-character-faction ${hero.faction}">${lobbyFactionLabels[hero.faction] || '將'}</span>
+                        <strong>${hero.name}</strong>
+                        <em>${unlocked ? '已取得' : '未取得'}</em>
+                    `;
+                    heroDrawPool.appendChild(item);
+                });
+            }
+
+            function openHeroDrawScreen() {
+                lastDrawnHeroId = null;
+                renderHeroDrawPool();
+                const hasMissingHero = lobbyHeroes.some(hero => !isHeroUnlocked(hero.id));
+                if (heroDrawResult) {
+                    heroDrawResult.innerHTML = hasMissingHero ? `
+                        <span>英雄卡池</span>
+                        <h3>等待召令</h3>
+                        <p>按下抽卡後，會從你還沒有的英雄裡隨機獲得一位。</p>
+                    ` : `
+                        <span>卡池完成</span>
+                        <h3>英雄已全數取得</h3>
+                        <p>目前卡池裡的武將都已經加入你的帳號。</p>
+                    `;
+                }
+                if (startHeroDraw) startHeroDraw.disabled = !hasMissingHero;
+                if (equipDrawnHero) equipDrawnHero.classList.add('hidden');
+                if (heroDrawScreen) heroDrawScreen.classList.remove('hidden');
+            }
+
+            function drawMissingHero() {
+                const missingHeroes = lobbyHeroes.filter(hero => !isHeroUnlocked(hero.id));
+                if (!missingHeroes.length) {
+                    if (heroDrawResult) {
+                        heroDrawResult.innerHTML = `
+                            <span>卡池完成</span>
+                            <h3>英雄已全數取得</h3>
+                            <p>目前卡池裡的武將都已經加入你的帳號。</p>
+                        `;
+                    }
+                    if (startHeroDraw) startHeroDraw.disabled = true;
+                    if (equipDrawnHero) equipDrawnHero.classList.add('hidden');
+                    return;
+                }
+                const drawnHero = missingHeroes[Math.floor(Math.random() * missingHeroes.length)];
+                unlockHero(drawnHero.id);
+                lastDrawnHeroId = drawnHero.id;
+                renderHeroDrawPool();
+                renderLobbyCharacterGrid();
+                if (heroDrawResult) {
+                    heroDrawResult.innerHTML = `
+                        <span>抽到了</span>
+                        <img src="${drawnHero.avatar}" alt="${drawnHero.name}">
+                        <h3>${drawnHero.name}</h3>
+                        <p>${lobbyFactionNames[drawnHero.faction] || '亂世英雄'}已加入你的帳號。</p>
+                    `;
+                }
+                if (equipDrawnHero) equipDrawnHero.classList.remove('hidden');
+                if (lobbyMessage) lobbyMessage.textContent = `抽到了 ${drawnHero.name}`;
+                if (startHeroDraw) startHeroDraw.disabled = lobbyHeroes.every(hero => isHeroUnlocked(hero.id));
+            }
+
             if (openLobbyHeroSelect) {
                 openLobbyHeroSelect.addEventListener('click', () => openLobbyCharacterSelect());
             }
             if (drawHeroButton) {
-                drawHeroButton.addEventListener('click', () => {
-                    if (lobbyMessage) lobbyMessage.textContent = '抽英雄功能準備中';
+                drawHeroButton.addEventListener('click', openHeroDrawScreen);
+            }
+            if (closeHeroDraw) closeHeroDraw.addEventListener('click', () => {
+                if (heroDrawScreen) heroDrawScreen.classList.add('hidden');
+                if (startHeroDraw) startHeroDraw.disabled = false;
+            });
+            if (startHeroDraw) startHeroDraw.addEventListener('click', drawMissingHero);
+            if (equipDrawnHero) {
+                equipDrawnHero.addEventListener('click', () => {
+                    if (!lastDrawnHeroId) return;
+                    setLobbyMainHero(lastDrawnHeroId);
+                    if (heroDrawScreen) heroDrawScreen.classList.add('hidden');
                 });
             }
             if (closeLobbyHeroSelect) {
